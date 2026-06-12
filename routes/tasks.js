@@ -6,9 +6,9 @@ const { authRequired, projectMemberRequired, leaderRequired } = require('../midd
 const router = express.Router();
 router.use(authRequired);
 
-// 할 일 생성 (팀장 전용): 담당자, 순서, 최대 기한 설정
-router.post('/:projectId/tasks', projectMemberRequired, leaderRequired, async (req, res) => {
-  const { assignee, title, description, order, dueDate } = req.body;
+// 할 일 생성 (팀장·팀원 모두 가능): 담당자, 종류, 순서, 최대 기한 설정
+router.post('/:projectId/tasks', projectMemberRequired, async (req, res) => {
+  const { assignee, title, description, category, order, dueDate } = req.body;
   if (!assignee || !title || order === undefined || !dueDate) {
     return res.status(400).json({ error: '담당자, 제목, 순서, 기한을 모두 입력하세요.' });
   }
@@ -20,6 +20,7 @@ router.post('/:projectId/tasks', projectMemberRequired, leaderRequired, async (r
     assignee,
     title,
     description: description || '',
+    category: category || '기타',
     order: Number(order),
     dueDate: new Date(dueDate),
   });

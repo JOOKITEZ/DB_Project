@@ -162,14 +162,23 @@ function switchTab(tab) {
 }
 
 // ===== 할 일 =====
-async function loadTasks() {
-  const createCard = document.getElementById('taskCreateCard');
-  createCard.classList.toggle('hidden', !isLeader());
-  if (isLeader()) {
-    document.getElementById('taskAssignee').innerHTML = currentProject.members
-      .map((m) => `<option value="${m.user._id}">${esc(m.user.nickname)}</option>`)
-      .join('');
+const CATEGORY_ICONS = { 기사: '📰', 논문: '📄', 영상: '🎬', PPT: '📊', 대본: '🎤', 기타: '📌' };
+
+// 할 일 종류를 누르면 해당 작업 화면으로 이동
+function goToCategoryTab(category) {
+  if (['기사', '논문', '영상'].includes(category)) {
+    switchTab('resources');
+    filterResources(category);
+  } else if (category === 'PPT' || category === '대본') {
+    switchTab('ppts');
   }
+}
+
+async function loadTasks() {
+  // 팀장·팀원 모두 할 일을 추가할 수 있다
+  document.getElementById('taskAssignee').innerHTML = currentProject.members
+    .map((m) => `<option value="${m.user._id}">${esc(m.user.nickname)}</option>`)
+    .join('');
   const { tasks } = await api('GET', `/projects/${currentProject._id}/tasks`);
   const list = document.getElementById('taskList');
   if (!tasks.length) {
@@ -179,14 +188,15 @@ async function loadTasks() {
   list.innerHTML = tasks.map((t) => {
     const mineOrLeader = t.assignee._id === me.id || isLeader();
     const actions = mineOrLeader && t.status !== '완료'
-      ? `<button class="ghost-btn" style="color:#4f46e5" onclick="setTaskStatus('${t._id}','${t.status === '진행전' ? '진행중' : '완료'}')">${t.status === '진행전' ? '시작' : '완료 처리'}</button>`
+      ? `<button class="ghost-btn accent" onclick="setTaskStatus('${t._id}','${t.status === '진행전' ? '진행중' : '완료'}')">${t.status === '진행전' ? '시작' : '완료 처리'}</button>`
       : '';
     const del = isLeader() ? `<button class="danger-btn" onclick="deleteTask('${t._id}')">삭제</button>` : '';
+    const cat = t.category || '기타';
     return `
       <div class="task-item">
         <span class="task-order">${t.order}</span>
-        <div class="task-body">
-          <div class="title">${esc(t.title)}</div>
+        <div class="task-body clickable" onclick="goToCategoryTab('${cat}')" title="클릭하면 해당 작업 화면으로 이동합니다">
+          <div class="title">${CATEGORY_ICONS[cat] || ''} ${esc(t.title)} <span class="category-chip">${cat}</span></div>
           <div class="meta">담당: ${esc(t.assignee.nickname)} · 기한: ${fmtDate(t.dueDate)}${t.description ? ' · ' + esc(t.description) : ''}</div>
         </div>
         <span class="status-chip status-${t.status}">${t.status}</span>
@@ -199,6 +209,7 @@ async function createTask() {
   try {
     await api('POST', `/projects/${currentProject._id}/tasks`, {
       title: document.getElementById('taskTitle').value.trim(),
+      category: document.getElementById('taskCategory').value,
       assignee: document.getElementById('taskAssignee').value,
       order: Number(document.getElementById('taskOrder').value),
       dueDate: document.getElementById('taskDue').value,

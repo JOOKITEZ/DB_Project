@@ -64,13 +64,17 @@ async function main() {
   r = await call('PUT', `/projects/${project._id}/members/${leaderId}/role`, { role: 'x' }, memberToken);
   assert(r.status === 403, '팀원의 역할 부여 거부');
 
-  // 5. 할 일 생성 (순서 1, 2)
+  // 5. 할 일 생성 (순서 1, 2) — 종류(category) 포함
   const future = new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString();
-  r = await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '자료 수집', order: 1, dueDate: future }, leaderToken);
+  r = await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '자료 수집', category: '논문', order: 1, dueDate: future }, leaderToken);
   assert(r.status === 201, '할 일 1 생성');
   const task1 = r.data.task;
-  r = await call('POST', `/projects/${project._id}/tasks`, { assignee: leaderId, title: 'PPT 제작', order: 2, dueDate: future }, leaderToken);
+  r = await call('POST', `/projects/${project._id}/tasks`, { assignee: leaderId, title: 'PPT 제작', category: 'PPT', order: 2, dueDate: future }, leaderToken);
   assert(r.status === 201, '할 일 2 생성');
+
+  // 팀원도 할 일을 추가할 수 있다
+  r = await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '팀원이 만든 일', category: '기타', order: 10, dueDate: future }, memberToken);
+  assert(r.status === 201, '팀원의 할 일 추가');
 
   // 순서 1 배정 알림이 팀원에게 갔는지
   r = await call('GET', '/notifications', null, memberToken);
@@ -105,9 +109,11 @@ async function main() {
   r = await call('GET', '/notifications', null, memberToken);
   assert(r.data.notifications.some((n) => n.message.includes('하루 남았습니다')), 'D-1 마감 임박 알림');
 
-  // 10. 자료조사
+  // 10. 자료조사: 해당 종류의 할 일을 배정받은 사람만 등록 가능
   r = await call('POST', `/projects/${project._id}/resources`, { type: '논문', title: 'NoSQL 연구', url: 'https://example.com/paper' }, memberToken);
-  assert(r.status === 201, '자료 등록');
+  assert(r.status === 201, "자료 등록 ('논문' 할 일 배정자)");
+  r = await call('POST', `/projects/${project._id}/resources`, { type: '기사', title: '기사', url: 'https://example.com/news' }, leaderToken);
+  assert(r.status === 403, "'기사' 할 일 없는 사람의 등록 거부");
   r = await call('GET', `/projects/${project._id}/resources?type=논문`, null, leaderToken);
   assert(r.data.resources.length === 1, '자료 종류 필터');
 

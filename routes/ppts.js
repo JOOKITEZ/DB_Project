@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const Ppt = require('../models/Ppt');
 const { authRequired, projectMemberRequired } = require('../middleware/auth');
+const { hasCategoryTask } = require('../middleware/permissions');
 
 const router = express.Router();
 router.use(authRequired);
@@ -25,9 +26,12 @@ const upload = multer({
   },
 });
 
-// PPT 업로드
+// PPT 업로드: 'PPT' 종류의 할 일을 배정받은 사람만 가능
 router.post('/:projectId/ppts', projectMemberRequired, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '파일을 선택하세요.' });
+  if (!(await hasCategoryTask(req.project._id, req.user.id, 'PPT'))) {
+    return res.status(403).json({ error: "'PPT' 종류의 할 일을 배정받은 사람만 업로드할 수 있습니다. 할 일 탭에서 먼저 추가하세요." });
+  }
   const ppt = await Ppt.create({
     project: req.project._id,
     uploader: req.user.id,
@@ -47,10 +51,13 @@ router.get('/:projectId/ppts', projectMemberRequired, async (req, res) => {
   res.json({ ppts });
 });
 
-// 슬라이드(장)별 대본 추가/수정
+// 슬라이드(장)별 대본 추가/수정: '대본' 종류의 할 일을 배정받은 사람만 가능
 router.put('/:projectId/ppts/:pptId/scripts', projectMemberRequired, async (req, res) => {
   const { slideNumber, script } = req.body;
   if (!slideNumber) return res.status(400).json({ error: '슬라이드 번호를 입력하세요.' });
+  if (!(await hasCategoryTask(req.project._id, req.user.id, '대본'))) {
+    return res.status(403).json({ error: "'대본' 종류의 할 일을 배정받은 사람만 대본을 작성할 수 있습니다. 할 일 탭에서 먼저 추가하세요." });
+  }
   const ppt = await Ppt.findOne({ _id: req.params.pptId, project: req.project._id });
   if (!ppt) return res.status(404).json({ error: 'PPT를 찾을 수 없습니다.' });
 

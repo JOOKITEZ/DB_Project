@@ -10,7 +10,9 @@
 | 프로젝트 생성 | 생성자가 자동으로 **팀장**이 되고, 고유 **4자리 초대 코드**가 부여됨 |
 | 초대 코드 참가 | 4자리 코드를 입력해 팀원으로 참가 |
 | 역할 부여 | 팀장이 각 팀원에게 역할을 지정 (예: 자료조사, PPT 제작) |
-| 할 일 관리 | 담당자·**순서(order)**·**최대 기한(dueDate)** 을 설정 |
+| 할 일 관리 | 팀장·팀원 누구나 추가 가능. 담당자·**종류(category)**·**순서(order)**·**최대 기한(dueDate)** 을 설정 |
+| 작업 권한 | 자료 등록·PPT 업로드·대본 작성은 **해당 종류의 할 일을 배정받은 사람만** 가능 |
+| 작업 바로가기 | 할 일을 클릭하면 그 종류의 작업 화면(자료조사/PPT 탭)으로 자동 이동 |
 | 마감 알림 | 기한 **이틀 전 / 하루 전** 두 번 알림 (스케줄러가 매시 검사) |
 | 지분 차감 | 기한을 넘기면 해당 팀원의 점수 −10 → 지분 하락. 기한 내 완료 시 +10 |
 | 순서 알림 | 한 일정이 완료되면 **다음 순서 담당자에게 즉시 알림** |
@@ -79,11 +81,25 @@ npm test
 |---|---|
 | `users` | userId, password(해시), nickname, email |
 | `projects` | name, inviteCode(4자리, unique), leader, members[{user, role, isLeader, score}] |
-| `tasks` | project, assignee, title, order, dueDate, status, notifiedTwoDays, notifiedOneDay, penaltyApplied |
+| `tasks` | project, assignee, title, category(기사/논문/영상/PPT/대본/기타), order, dueDate, status, notifiedTwoDays, notifiedOneDay, penaltyApplied |
 | `resources` | project, uploader, type(기사/논문/영상), title, url, memo |
 | `ppts` | project, uploader, originalName, fileName, scripts[{slideNumber, script}] |
 | `messages` | project, sender, content |
 | `notifications` | user, project, type(마감임박/기한초과/다음순서), message, read |
+
+## 작업 권한 규칙
+
+모든 작업은 **할 일에 추가되어야 권한이 생깁니다.**
+
+| 하려는 작업 | 필요한 할 일 종류 |
+|---|---|
+| 기사 자료 등록 | `기사` |
+| 논문 자료 등록 | `논문` |
+| 영상 자료 등록 | `영상` |
+| PPT 업로드 | `PPT` |
+| 슬라이드 대본 작성 | `대본` |
+
+해당 종류의 할 일을 배정받지 않은 사람이 작업을 시도하면 403 오류와 함께 안내 메시지가 표시됩니다.
 
 ## 지분 계산 방식
 

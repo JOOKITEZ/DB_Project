@@ -1,9 +1,10 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-  background: #f4f6fb;
-  color: #1f2937;
+  font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  background: #f5f5f4;
+  color: #292524;
+  letter-spacing: -0.01em;
 }
 
 .hidden { display: none !important; }
@@ -14,7 +15,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 12px 24px;
-  background: #4f46e5;
+  background: #44403c;
   color: #fff;
   position: sticky;
   top: 0;
@@ -44,7 +45,7 @@ body {
   padding: 10px 14px; border-bottom: 1px solid #e5e7eb; font-weight: 700;
 }
 .notif-item { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
-.notif-item.unread { background: #eef2ff; }
+.notif-item.unread { background: #e7e5e4; }
 .notif-item .time { color: #9ca3af; font-size: 11px; margin-top: 4px; }
 .notif-empty { padding: 20px; text-align: center; color: #9ca3af; }
 
@@ -65,15 +66,15 @@ input, select {
 .form-row button { white-space: nowrap; }
 
 .primary-btn {
-  background: #4f46e5; color: #fff; border: none; border-radius: 8px;
+  background: #44403c; color: #fff; border: none; border-radius: 8px;
   padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
 }
-.primary-btn:hover { background: #4338ca; }
+.primary-btn:hover { background: #1c1917; }
 .ghost-btn {
   background: transparent; border: 1px solid currentColor; border-radius: 8px;
   padding: 6px 12px; cursor: pointer; color: inherit; font-size: 13px;
 }
-.link-btn { background: none; border: none; color: #4f46e5; cursor: pointer; font-size: 13px; }
+.link-btn { background: none; border: none; color: #44403c; cursor: pointer; font-size: 13px; }
 .danger-btn {
   background: #fee2e2; color: #b91c1c; border: none; border-radius: 6px;
   padding: 5px 10px; font-size: 12px; cursor: pointer;
@@ -106,7 +107,7 @@ input, select {
 .project-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .project-head h2 { flex: 1; }
 .chip {
-  background: #eef2ff; color: #4f46e5; border-radius: 999px;
+  background: #e7e5e4; color: #44403c; border-radius: 999px;
   padding: 5px 14px; font-weight: 700; font-size: 14px;
 }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -114,7 +115,7 @@ input, select {
   background: #fff; border: 1px solid #e5e7eb; border-radius: 8px 8px 0 0;
   padding: 9px 14px; cursor: pointer; font-size: 14px;
 }
-.tab.active { background: #4f46e5; color: #fff; border-color: #4f46e5; font-weight: 600; }
+.tab.active { background: #44403c; color: #fff; border-color: #44403c; font-weight: 600; }
 
 /* 할 일 */
 .task-item {
@@ -123,12 +124,20 @@ input, select {
   box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
 .task-order {
-  background: #4f46e5; color: #fff; border-radius: 999px; min-width: 28px; height: 28px;
+  background: #44403c; color: #fff; border-radius: 999px; min-width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
 }
 .task-body { flex: 1; }
+.task-body.clickable { cursor: pointer; }
+.task-body.clickable:hover .title { text-decoration: underline; }
 .task-body .title { font-weight: 600; }
 .task-body .meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.category-chip {
+  background: #e7e5e4; color: #57534e; border-radius: 999px;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; vertical-align: middle;
+}
+.ghost-btn.accent { color: #44403c; border-color: #d6d3d1; background: #fafaf9; }
+.ghost-btn.accent:hover { background: #e7e5e4; }
 .status-chip { border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; }
 .status-진행전 { background: #f3f4f6; color: #6b7280; }
 .status-진행중 { background: #dbeafe; color: #1d4ed8; }
@@ -141,21 +150,21 @@ input, select {
   background: #fff; border: 1px solid #d1d5db; border-radius: 999px;
   padding: 5px 14px; font-size: 13px; cursor: pointer;
 }
-.chip-btn.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+.chip-btn.active { background: #44403c; color: #fff; border-color: #44403c; }
 .resource-item {
   background: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;
   display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
 .resource-item .body { flex: 1; }
-.resource-item a { color: #4f46e5; font-weight: 600; text-decoration: none; }
+.resource-item a { color: #44403c; font-weight: 600; text-decoration: none; }
 .resource-item .meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
 
 /* PPT */
 .ppt-item { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
 .ppt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.ppt-head a { color: #4f46e5; font-weight: 700; text-decoration: none; flex: 1; }
+.ppt-head a { color: #44403c; font-weight: 700; text-decoration: none; flex: 1; }
 .script-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; }
-.script-row .slide-no { background: #eef2ff; color: #4f46e5; border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.script-row .slide-no { background: #e7e5e4; color: #44403c; border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 13px; white-space: nowrap; }
 .script-row p { flex: 1; font-size: 13px; padding-top: 6px; white-space: pre-wrap; }
 .script-form { display: flex; gap: 8px; margin-top: 8px; }
 .script-form input[type=number] { width: 80px; flex: none; }
@@ -167,7 +176,7 @@ input, select {
 .msg .sender { font-size: 11px; color: #6b7280; margin-bottom: 2px; }
 .msg .bubble { background: #f3f4f6; border-radius: 12px; padding: 8px 12px; font-size: 14px; display: inline-block; }
 .msg.mine { margin-left: auto; text-align: right; }
-.msg.mine .bubble { background: #4f46e5; color: #fff; }
+.msg.mine .bubble { background: #44403c; color: #fff; }
 .chat-input-row { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #e5e7eb; }
 .chat-input-row input { margin-bottom: 0; }
 
@@ -176,9 +185,9 @@ input, select {
 .share-item { background: #fff; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
 .share-top { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
 .share-top .name { font-weight: 700; }
-.share-top .percent { font-weight: 700; color: #4f46e5; }
+.share-top .percent { font-weight: 700; color: #44403c; }
 .share-bar { background: #e5e7eb; border-radius: 999px; height: 12px; overflow: hidden; }
-.share-fill { background: linear-gradient(90deg, #6366f1, #4f46e5); height: 100%; border-radius: 999px; transition: width .4s; }
+.share-fill { background: linear-gradient(90deg, #a8a29e, #44403c); height: 100%; border-radius: 999px; transition: width .4s; }
 .share-item .meta { font-size: 12px; color: #6b7280; margin-top: 6px; }
 
 /* 멤버 */
