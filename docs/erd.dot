@@ -1,0 +1,122 @@
+// 조별과제 매니저 — ERD (ERwin IE 표기법 스타일)
+// 실선 = 내장(embedded, 식별 관계) / 점선 = 참조(reference, 비식별 관계)
+digraph ERD {
+  graph [rankdir=LR, splines=ortho, nodesep=0.6, ranksep=1.1, fontname="NanumGothic", bgcolor=white,
+         label="조별과제 매니저 — DB 스키마 ERD (MongoDB)\n실선=내장(Embedded) · 점선=참조(Reference) · 까마귀발=N측", labelloc=t, fontsize=18];
+  node  [shape=plain, fontname="NanumGothic", fontsize=11];
+  edge  [fontname="NanumGothic", fontsize=10, color="#3f3f46"];
+
+  USERS [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
+      <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>USERS (회원)</B></FONT></TD></TR>
+      <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
+      <TR><TD ALIGN="LEFT">userId : String (UK, 로그인 ID)</TD></TR>
+      <TR><TD ALIGN="LEFT">password : String (bcrypt 해시)</TD></TR>
+      <TR><TD ALIGN="LEFT">nickname : String</TD></TR>
+      <TR><TD ALIGN="LEFT">email : String (UK)</TD></TR>
+      <TR><TD ALIGN="LEFT">createdAt / updatedAt : Date</TD></TR>
+    </TABLE>>];
+
+  PROJECTS [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
+      <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>PROJECTS (프로젝트)</B></FONT></TD></TR>
+      <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
+      <TR><TD ALIGN="LEFT">name : String</TD></TR>
+      <TR><TD ALIGN="LEFT">description : String</TD></TR>
+      <TR><TD ALIGN="LEFT">inviteCode : String(4) (UK, 초대코드)</TD></TR>
+      <TR><TD ALIGN="LEFT">leader : ObjectId (FK → USERS)</TD></TR>
+      <TR><TD ALIGN="LEFT">createdAt / updatedAt : Date</TD></TR>
+    </TABLE>>];
+
+  MEMBERS [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46" STYLE="ROUNDED">
+      <TR><TD BGCOLOR="#71717a" ALIGN="CENTER"><FONT COLOR="white"><B>PROJECT.members (내장 배열)</B></FONT></TD></TR>
+      <TR><TD ALIGN="LEFT">user : ObjectId (FK → USERS)</TD></TR>
+      <TR><TD ALIGN="LEFT">role : String (역할)</TD></TR>
+      <TR><TD ALIGN="LEFT">isLeader : Boolean</TD></TR>
+      <TR><TD ALIGN="LEFT">score : Number (지분 점수, 기본 100)</TD></TR>
+    </TABLE>>];
+
+  TASKS [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
+      <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>TASKS (할 일)</B></FONT></TD></TR>
+      <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
+      <TR><TD ALIGN="LEFT">project : ObjectId (FK → PROJECTS)</TD></TR>
+      <TR><TD ALIGN="LEFT">assignee : ObjectId (FK → USERS)</TD></TR>
+      <TR><TD ALIGN="LEFT">title / description : String</TD></TR>
+      <TR><TD ALIGN="LEFT">category : Enum(기사·논문·영상·PPT·대본·기타)</TD></TR>
+      <TR><TD ALIGN="LEFT">order : Number (진행 순서)</TD></TR>
+      <TR><TD ALIGN="LEFT">dueDate : Date (최대 기한)</TD></TR>
+      <TR><TD ALIGN="LEFT">status : Enum(진행전·진행중·완료·기한초과)</TD></TR>
+      <TR><TD ALIGN="LEFT">completedAt : Date</TD></TR>
+      <TR><TD ALIGN="LEFT">notifiedTwoDays / notifiedOneDay : Bool</TD></TR>
+      <TR><TD ALIGN="LEFT">penaltyApplied / rewardApplied : Bool</TD></TR>
+    </TABLE>>];
+
+  RESOURCES [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
+      <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>RESOURCES (자료조사)</B></FONT></TD></TR>
+      <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
+      <TR><TD ALIGN="LEFT">project : ObjectId (FK → PROJECTS)</TD></TR>
+      <TR><TD ALIGN="LEFT">uploader : ObjectId (FK → USERS)</TD></TR>
+      <TR><TD ALIGN="LEFT">type : Enum(기사·논문·영상)</TD></TR>
+      <TR><TD ALIGN="LEFT">title / url / memo : String</TD></TR>
+    </TABLE>>];
+
+  PPTS [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
+      <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>PPTS (발표자료)</B></FONT></TD></TR>
+      <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
+      <TR><TD ALIGN="LEFT">project : ObjectId (FK → PROJECTS)</TD></TR>
+      <TR><TD ALIGN="LEFT">uploader : ObjectId (FK → USERS)</TD></TR>
+      <TR><TD ALIGN="LEFT">originalName : String (원본 파일명)</TD></TR>
+      <TR><TD ALIGN="LEFT">fileName : String (저장 파일명)</TD></TR>
+    </TABLE>>];
+
+  SCRIPTS [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46" STYLE="ROUNDED">
+      <TR><TD BGCOLOR="#71717a" ALIGN="CENTER"><FONT COLOR="white"><B>PPT.scripts (내장 배열)</B></FONT></TD></TR>
+      <TR><TD ALIGN="LEFT">slideNumber : Number (몇 장)</TD></TR>
+      <TR><TD ALIGN="LEFT">script : String (대본)</TD></TR>
+    </TABLE>>];
+
+  MESSAGES [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
+      <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>MESSAGES (메시지)</B></FONT></TD></TR>
+      <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
+      <TR><TD ALIGN="LEFT">project : ObjectId (FK → PROJECTS)</TD></TR>
+      <TR><TD ALIGN="LEFT">sender : ObjectId (FK → USERS)</TD></TR>
+      <TR><TD ALIGN="LEFT">content : String</TD></TR>
+      <TR><TD ALIGN="LEFT">createdAt : Date (IX)</TD></TR>
+    </TABLE>>];
+
+  NOTIFICATIONS [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
+      <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>NOTIFICATIONS (알림)</B></FONT></TD></TR>
+      <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
+      <TR><TD ALIGN="LEFT">user : ObjectId (FK → USERS)</TD></TR>
+      <TR><TD ALIGN="LEFT">project : ObjectId (FK → PROJECTS)</TD></TR>
+      <TR><TD ALIGN="LEFT">type : Enum(마감임박·기한초과·다음순서·일반)</TD></TR>
+      <TR><TD ALIGN="LEFT">message : String</TD></TR>
+      <TR><TD ALIGN="LEFT">read : Boolean</TD></TR>
+    </TABLE>>];
+
+  // ── 관계 (1측 = tee, N측 = crow) ──
+  // 내장(식별) 관계: 실선
+  PROJECTS -> MEMBERS [dir=both, arrowtail=tee, arrowhead=crow, xlabel="포함 1:N"];
+  PPTS     -> SCRIPTS [dir=both, arrowtail=tee, arrowhead=crow, xlabel="포함 1:N"];
+
+  // 참조(비식별) 관계: 점선
+  USERS    -> MEMBERS       [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="참여 1:N"];
+  USERS    -> PROJECTS      [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="팀장 1:N"];
+  PROJECTS -> TASKS         [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="1:N"];
+  USERS    -> TASKS         [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="담당 1:N"];
+  PROJECTS -> RESOURCES     [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="1:N"];
+  USERS    -> RESOURCES     [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="등록 1:N"];
+  PROJECTS -> PPTS          [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="1:N"];
+  USERS    -> PPTS          [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="업로드 1:N"];
+  PROJECTS -> MESSAGES      [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="1:N"];
+  USERS    -> MESSAGES      [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="발신 1:N"];
+  PROJECTS -> NOTIFICATIONS [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="1:N"];
+  USERS    -> NOTIFICATIONS [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="수신 1:N"];
+}
