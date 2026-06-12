@@ -3,35 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>조별과제 매니저</title>
+  <title>조각 — 조별과제, 각자의 몫이 보이다</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <!-- 상단 바 -->
   <header id="topbar" class="hidden">
-    <div class="brand" onclick="showDashboard()">📋 조별과제 매니저</div>
+    <div class="brand" onclick="showDashboard()">🧩 조각</div>
     <div class="topbar-right">
       <div class="bell-wrap">
         <button id="bellBtn" onclick="toggleNotifications()">🔔<span id="bellBadge" class="badge hidden"></span></button>
         <div id="notifPanel" class="notif-panel hidden">
-          <div class="notif-head">
-            <span>알림</span>
-            <button class="link-btn" onclick="markAllRead()">모두 읽음</button>
-          </div>
+          <div class="notif-head"><span>알림</span><span class="notif-sub">열면 자동으로 읽음 처리됩니다</span></div>
           <div id="notifList"></div>
         </div>
       </div>
-      <span id="myNickname" class="nickname"></span>
+      <button id="avatarBtn" class="avatar" onclick="openProfile()" title="내 프로필"></button>
       <button class="ghost-btn" onclick="logout()">로그아웃</button>
     </div>
   </header>
 
+  <!-- 프로필 모달 -->
+  <div id="profileModal" class="modal-overlay hidden" onclick="if(event.target===this)closeProfile()">
+    <div class="modal">
+      <h3>내 프로필</h3>
+      <div class="profile-avatar-row">
+        <div id="profileAvatarPreview" class="avatar avatar-lg"></div>
+        <label class="ghost-btn accent file-label">
+          이미지 변경
+          <input id="avatarFile" type="file" accept="image/*" onchange="uploadAvatar()" hidden />
+        </label>
+      </div>
+      <label class="field-label">닉네임</label>
+      <input id="profileNickname" placeholder="닉네임" />
+      <label class="field-label">학교 (선택)</label>
+      <input id="profileSchool" placeholder="예: 한국대학교" />
+      <label class="field-label">학과 (선택)</label>
+      <input id="profileMajor" placeholder="예: 컴퓨터공학과" />
+      <label class="field-label">학번 (선택)</label>
+      <input id="profileStudentId" placeholder="예: 2024123456" />
+      <div class="modal-actions">
+        <button class="ghost-btn" onclick="closeProfile()">닫기</button>
+        <button class="primary-btn" onclick="saveProfile()">저장</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 로그인 / 회원가입 -->
   <section id="authView" class="view">
     <div class="auth-card">
-      <h1>📋 조별과제 매니저</h1>
-      <p class="subtitle">조별과제 운영을 편리하게, 기여도는 투명하게</p>
+      <h1>🧩 조각</h1>
+      <p class="subtitle">조별과제, 각자의 몫이 보이다</p>
 
       <div id="loginForm">
         <h2>로그인</h2>
@@ -77,10 +100,13 @@
   <!-- 프로젝트 상세 -->
   <section id="projectView" class="view hidden">
     <div class="container">
-      <div class="project-head">
-        <button class="ghost-btn" onclick="showDashboard()">← 목록으로</button>
-        <h2 id="projectTitle"></h2>
-        <span id="inviteCodeChip" class="chip"></span>
+      <button class="back-link" onclick="showDashboard()">← 내 프로젝트 목록</button>
+      <div class="project-head card">
+        <div class="project-title-row">
+          <h2 id="projectTitle"></h2>
+          <span id="inviteCodeChip" class="chip"></span>
+        </div>
+        <p id="projectDesc" class="project-desc"></p>
       </div>
 
       <nav class="tabs">
@@ -121,24 +147,26 @@
       <div id="tab-resources" class="tab-panel hidden">
         <div class="card">
           <h3>자료 추가</h3>
-          <p class="hint">해당 종류(기사/논문/영상)의 할 일을 배정받은 사람만 등록할 수 있습니다.</p>
+          <p class="hint">기사·논문·영상은 해당 종류의 할 일을 배정받은 사람만 등록할 수 있습니다. <b>기타는 누구나 등록 가능</b>하며 메모 중심으로 남길 수 있어요.</p>
           <div class="form-row">
-            <select id="resType">
-              <option value="기사">기사</option>
-              <option value="논문">논문</option>
-              <option value="영상">영상</option>
+            <select id="resType" onchange="onResTypeChange()">
+              <option value="기사">📰 기사</option>
+              <option value="논문">📄 논문</option>
+              <option value="영상">🎬 영상</option>
+              <option value="기타">📝 기타</option>
             </select>
             <input id="resTitle" placeholder="제목" />
             <input id="resUrl" placeholder="링크 (URL)" />
             <button class="primary-btn" onclick="addResource()">등록</button>
           </div>
-          <input id="resMemo" placeholder="메모 (선택)" />
+          <textarea id="resMemo" rows="2" placeholder="메모 (선택)"></textarea>
         </div>
         <div class="filter-row">
           <button class="chip-btn active" data-filter="" onclick="filterResources('')">전체</button>
           <button class="chip-btn" data-filter="기사" onclick="filterResources('기사')">기사</button>
           <button class="chip-btn" data-filter="논문" onclick="filterResources('논문')">논문</button>
           <button class="chip-btn" data-filter="영상" onclick="filterResources('영상')">영상</button>
+          <button class="chip-btn" data-filter="기타" onclick="filterResources('기타')">기타</button>
         </div>
         <div id="resourceList"></div>
       </div>

@@ -2,7 +2,7 @@
 // 실선 = 내장(embedded, 식별 관계) / 점선 = 참조(reference, 비식별 관계)
 digraph ERD {
   graph [rankdir=LR, splines=ortho, nodesep=0.6, ranksep=1.1, fontname="NanumGothic", bgcolor=white,
-         label="조별과제 매니저 — DB 스키마 ERD (MongoDB)\n실선=내장(Embedded) · 점선=참조(Reference) · 까마귀발=N측", labelloc=t, fontsize=18];
+         label="조각(JOGAK) — DB 스키마 ERD (MongoDB)\n실선=내장(Embedded) · 점선=참조(Reference) · 까마귀발=N측", labelloc=t, fontsize=18];
   node  [shape=plain, fontname="NanumGothic", fontsize=11];
   edge  [fontname="NanumGothic", fontsize=10, color="#3f3f46"];
 
@@ -14,6 +14,8 @@ digraph ERD {
       <TR><TD ALIGN="LEFT">password : String (bcrypt 해시)</TD></TR>
       <TR><TD ALIGN="LEFT">nickname : String</TD></TR>
       <TR><TD ALIGN="LEFT">email : String (UK)</TD></TR>
+      <TR><TD ALIGN="LEFT">avatar : String (프로필 이미지)</TD></TR>
+      <TR><TD ALIGN="LEFT">school / major / studentId : String (선택)</TD></TR>
       <TR><TD ALIGN="LEFT">createdAt / updatedAt : Date</TD></TR>
     </TABLE>>];
 
@@ -59,8 +61,9 @@ digraph ERD {
       <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
       <TR><TD ALIGN="LEFT">project : ObjectId (FK → PROJECTS)</TD></TR>
       <TR><TD ALIGN="LEFT">uploader : ObjectId (FK → USERS)</TD></TR>
-      <TR><TD ALIGN="LEFT">type : Enum(기사·논문·영상)</TD></TR>
-      <TR><TD ALIGN="LEFT">title / url / memo : String</TD></TR>
+      <TR><TD ALIGN="LEFT">type : Enum(기사·논문·영상·기타)</TD></TR>
+      <TR><TD ALIGN="LEFT">title / memo : String</TD></TR>
+      <TR><TD ALIGN="LEFT">url : String (기타는 선택)</TD></TR>
     </TABLE>>];
 
   PPTS [label=<

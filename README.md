@@ -1,6 +1,8 @@
-# 📋 조별과제 매니저
+# 🧩 조각 (JOGAK)
 
-조별과제 운영을 편리하게 돕고, **열심히 참여한 사람과 그렇지 않은 사람을 지분(%)으로 가시화**하는 웹 서비스입니다.
+> 조별과제, 각자의 몫이 보이다
+
+조별과제 운영을 편리하게 돕고, **열심히 참여한 사람과 그렇지 않은 사람을 지분(조각)으로 가시화**하는 웹 서비스입니다. "조각"은 **조**별과제의 **각**자 몫이라는 뜻입니다.
 
 ## 주요 기능
 
@@ -16,7 +18,9 @@
 | 마감 알림 | 기한 **이틀 전 / 하루 전** 두 번 알림 (스케줄러가 매시 검사) |
 | 지분 차감 | 기한을 넘기면 해당 팀원의 점수 −10 → 지분 하락. 기한 내 완료 시 +10 |
 | 순서 알림 | 한 일정이 완료되면 **다음 순서 담당자에게 즉시 알림** |
-| 자료조사 모음 | 기사 / 논문 / 영상링크를 종류별로 모아보기 |
+| 자료조사 모음 | 기사 / 논문 / 영상링크 / 기타(메모 중심, url 선택·권한 불필요)를 종류별로 모아보기 |
+| 프로필 | 프로필 이미지·닉네임 변경, 학교/학과/학번(선택) 기입 |
+| 알림 자동 읽음 | 알림 패널을 열면 자동으로 읽음 처리 |
 | PPT 보관함 | ppt·pptx·pdf 업로드, **장(슬라이드)별로 그 아래에 대본** 작성 |
 | 메시지 | 프로젝트별 채팅 (3초 폴링) |
 | 지분 현황 | 팀장·팀원 모두의 지분을 점수 비율(%)과 막대그래프로 표시 |
@@ -79,10 +83,10 @@ npm test
 
 | 컬렉션 | 주요 필드 |
 |---|---|
-| `users` | userId, password(해시), nickname, email |
+| `users` | userId, password(해시), nickname, email, avatar, school, major, studentId |
 | `projects` | name, inviteCode(4자리, unique), leader, members[{user, role, isLeader, score}] |
 | `tasks` | project, assignee, title, category(기사/논문/영상/PPT/대본/기타), order, dueDate, status, notifiedTwoDays, notifiedOneDay, penaltyApplied |
-| `resources` | project, uploader, type(기사/논문/영상), title, url, memo |
+| `resources` | project, uploader, type(기사/논문/영상/기타), title, url(기타는 선택), memo |
 | `ppts` | project, uploader, originalName, fileName, scripts[{slideNumber, script}] |
 | `messages` | project, sender, content |
 | `notifications` | user, project, type(마감임박/기한초과/다음순서), message, read |

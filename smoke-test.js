@@ -128,6 +128,14 @@ async function main() {
   r = await call('GET', `/projects/${project._id}/resources?type=논문`, null, leaderToken);
   assert(r.data.resources.length === 1, '자료 종류 필터');
 
+  // 10-1. 기타 자료: 권한·url 없이도 메모로 등록 가능
+  r = await call('POST', `/projects/${project._id}/resources`, { type: '기타', title: '회의 메모', memo: '다음 회의는 금요일' }, leaderToken);
+  assert(r.status === 201, "'기타' 자료는 권한 없이 url 없이 등록 가능");
+
+  // 10-2. 프로필 수정 (닉네임/학교/학과/학번)
+  r = await call('PUT', '/auth/profile', { nickname: '팀장님2', school: '한국대', major: '컴공', studentId: '2024001' }, leaderToken);
+  assert(r.status === 200 && r.data.user.nickname === '팀장님2' && r.data.user.school === '한국대', '프로필 수정');
+
   // 11. 메시지
   r = await call('POST', `/projects/${project._id}/messages`, { content: '안녕하세요!' }, memberToken);
   assert(r.status === 201, '메시지 전송');

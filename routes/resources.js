@@ -6,22 +6,26 @@ const { hasCategoryTask } = require('../middleware/permissions');
 const router = express.Router();
 router.use(authRequired);
 
-// 자료 등록 (기사 / 논문 / 영상링크)
-// 해당 종류의 할 일을 배정받은 사람만 등록 가능
+// 자료 등록 (기사 / 논문 / 영상링크 / 기타)
+// 기사·논문·영상은 해당 종류의 할 일을 배정받은 사람만 등록 가능
+// 기타는 누구나 등록 가능하며 url은 선택, 메모가 본문 역할을 한다
 router.post('/:projectId/resources', projectMemberRequired, async (req, res) => {
   const { type, title, url, memo } = req.body;
-  if (!type || !title || !url) {
-    return res.status(400).json({ error: '종류, 제목, 링크를 모두 입력하세요.' });
+  if (!type || !title) {
+    return res.status(400).json({ error: '종류와 제목을 입력하세요.' });
   }
-  if (!(await hasCategoryTask(req.project._id, req.user.id, type))) {
-    return res.status(403).json({ error: `'${type}' 종류의 할 일을 배정받은 사람만 등록할 수 있습니다. 할 일 탭에서 먼저 추가하세요.` });
+  if (type !== '기타') {
+    if (!url) return res.status(400).json({ error: '링크(URL)를 입력하세요.' });
+    if (!(await hasCategoryTask(req.project._id, req.user.id, type))) {
+      return res.status(403).json({ error: `'${type}' 종류의 할 일을 배정받은 사람만 등록할 수 있습니다. 할 일 탭에서 먼저 추가하세요.` });
+    }
   }
   const resource = await Resource.create({
     project: req.project._id,
     uploader: req.user.id,
     type,
     title,
-    url,
+    url: url || '',
     memo: memo || '',
   });
   await resource.populate('uploader', 'nickname');

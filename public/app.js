@@ -24,6 +24,16 @@ async function api(method, path, body, isForm = false) {
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+
+// 프로필 이미지가 있으면 이미지, 없으면 닉네임 첫 글자 원형 아이콘
+function avatarHtml(user) {
+  if (user?.avatar) return `<img class="avatar-img" src="/uploads/${esc(user.avatar)}" alt="" />`;
+  return `<span class="avatar-fallback">${esc((user?.nickname || '?').charAt(0))}</span>`;
+}
+
+function updateTopbarAvatar() {
+  document.getElementById('avatarBtn').innerHTML = avatarHtml(me);
+}
 function fmtDate(d) {
   return new Date(d).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
@@ -73,9 +83,58 @@ function onLoggedIn(data) {
   me = data.user;
   localStorage.setItem('token', token);
   localStorage.setItem('me', JSON.stringify(me));
-  document.getElementById('myNickname').textContent = me.nickname;
+  updateTopbarAvatar();
   startNotifPolling();
   showDashboard();
+}
+
+// ===== 프로필 =====
+async function openProfile() {
+  try {
+    const { user } = await api('GET', '/auth/me');
+    me = { ...me, ...user };
+    localStorage.setItem('me', JSON.stringify(me));
+    document.getElementById('profileNickname').value = user.nickname || '';
+    document.getElementById('profileSchool').value = user.school || '';
+    document.getElementById('profileMajor').value = user.major || '';
+    document.getElementById('profileStudentId').value = user.studentId || '';
+    document.getElementById('profileAvatarPreview').innerHTML = avatarHtml(user);
+    document.getElementById('profileModal').classList.remove('hidden');
+  } catch (e) { alert(e.message); }
+}
+
+function closeProfile() {
+  document.getElementById('profileModal').classList.add('hidden');
+}
+
+async function saveProfile() {
+  try {
+    const { user } = await api('PUT', '/auth/profile', {
+      nickname: document.getElementById('profileNickname').value.trim(),
+      school: document.getElementById('profileSchool').value.trim(),
+      major: document.getElementById('profileMajor').value.trim(),
+      studentId: document.getElementById('profileStudentId').value.trim(),
+    });
+    me = { ...me, ...user };
+    localStorage.setItem('me', JSON.stringify(me));
+    updateTopbarAvatar();
+    closeProfile();
+  } catch (e) { alert(e.message); }
+}
+
+async function uploadAvatar() {
+  const fileInput = document.getElementById('avatarFile');
+  if (!fileInput.files.length) return;
+  const form = new FormData();
+  form.append('avatar', fileInput.files[0]);
+  try {
+    const { avatar } = await api('POST', '/auth/avatar', form, true);
+    me.avatar = avatar;
+    localStorage.setItem('me', JSON.stringify(me));
+    document.getElementById('profileAvatarPreview').innerHTML = avatarHtml(me);
+    updateTopbarAvatar();
+    fileInput.value = '';
+  } catch (e) { alert(e.message); }
 }
 
 function logout() {
@@ -141,6 +200,7 @@ async function openProject(projectId) {
     const { project } = await api('GET', `/projects/${projectId}`);
     currentProject = project;
     document.getElementById('projectTitle').textContent = project.name;
+    document.getElementById('projectDesc').textContent = project.description || '';
     document.getElementById('inviteCodeChip').textContent = `초대코드 ${project.inviteCode}`;
     show('projectView');
     switchTab('tasks');
@@ -257,17 +317,27 @@ async function loadResources() {
     list.innerHTML = '<p class="hint">등록된 자료가 없습니다.</p>';
     return;
   }
-  const icons = { 기사: '📰', 논문: '📄', 영상: '🎬' };
+  const icons = { 기사: '📰', 논문: '📄', 영상: '🎬', 기타: '📝' };
   list.innerHTML = resources.map((r) => `
     <div class="resource-item">
       <span>${icons[r.type] || '🔗'}</span>
       <div class="body">
-        <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>
-        <div class="meta">${r.type} · ${esc(r.uploader?.nickname || '')} · ${fmtDate(r.createdAt)}${r.memo ? ' · ' + esc(r.memo) : ''}</div>
+        ${r.url
+          ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>`
+          : `<span class="res-title">${esc(r.title)}</span>`}
+        <div class="meta">${r.type} · ${esc(r.uploader?.nickname || '')} · ${fmtDate(r.createdAt)}</div>
+        ${r.memo ? `<p class="res-memo">${esc(r.memo)}</p>` : ''}
       </div>
       ${(r.uploader?._id === me.id || isLeader()) ? `<button class="danger-btn" onclick="deleteResource('${r._id}')">삭제</button>` : ''}
     </div>
   `).join('');
+}
+
+// 기타 선택 시 url은 선택사항임을 안내
+function onResTypeChange() {
+  const isEtc = document.getElementById('resType').value === '기타';
+  document.getElementById('resUrl').placeholder = isEtc ? '링크 (선택)' : '링크 (URL)';
+  document.getElementById('resMemo').placeholder = isEtc ? '메모를 자유롭게 남겨보세요' : '메모 (선택)';
 }
 
 async function addResource() {
@@ -398,7 +468,7 @@ async function loadShares() {
     .map((s) => `
       <div class="share-item">
         <div class="share-top">
-          <span class="name">${esc(s.user.nickname)} ${s.isLeader ? '<span class="leader-chip">팀장</span>' : ''}</span>
+          <span class="name"><span class="avatar avatar-sm">${avatarHtml(s.user)}</span> ${esc(s.user.nickname)} ${s.isLeader ? '<span class="leader-chip">팀장</span>' : ''}</span>
           <span class="percent">${s.sharePercent}%</span>
         </div>
         <div class="share-bar"><div class="share-fill" style="width:${s.sharePercent}%"></div></div>
@@ -411,19 +481,22 @@ async function loadShares() {
 async function loadMembers() {
   const { project } = await api('GET', `/projects/${currentProject._id}`);
   currentProject = project;
-  document.getElementById('memberList').innerHTML = project.members.map((m) => `
+  document.getElementById('memberList').innerHTML = project.members.map((m) => {
+    const info = [m.user.school, m.user.major, m.user.studentId].filter(Boolean).join(' · ');
+    return `
     <div class="member-item">
+      <div class="avatar member-avatar">${avatarHtml(m.user)}</div>
       <div class="info">
         <div class="name">${esc(m.user.nickname)} ${m.isLeader ? '<span class="leader-chip">팀장</span>' : ''}</div>
-        <div class="meta">@${esc(m.user.userId)} · 역할: ${esc(m.role || '미지정')}</div>
+        <div class="meta">@${esc(m.user.userId)} · 역할: ${esc(m.role || '미지정')}${info ? '<br>' + esc(info) : ''}</div>
       </div>
       ${isLeader() && !m.isLeader ? `
         <div class="role-form">
           <input id="role-${m.user._id}" placeholder="역할 입력" value="${esc(m.role)}" />
           <button class="primary-btn" onclick="setRole('${m.user._id}')">저장</button>
         </div>` : ''}
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 async function setRole(memberId) {
@@ -456,13 +529,17 @@ async function loadNotifications() {
   } catch { /* 폴링 실패는 무시 */ }
 }
 
+// 알림 패널을 열면 자동으로 모두 읽음 처리
 function toggleNotifications() {
-  document.getElementById('notifPanel').classList.toggle('hidden');
-}
-
-async function markAllRead() {
-  await api('PUT', '/notifications/read-all');
-  loadNotifications();
+  const panel = document.getElementById('notifPanel');
+  const willOpen = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden');
+  if (willOpen) {
+    loadNotifications()
+      .then(() => api('PUT', '/notifications/read-all'))
+      .then(() => document.getElementById('bellBadge').classList.add('hidden'))
+      .catch(() => {});
+  }
 }
 
 function startNotifPolling() {
@@ -473,7 +550,7 @@ function startNotifPolling() {
 // ===== 초기화 =====
 (function init() {
   if (token && me) {
-    document.getElementById('myNickname').textContent = me.nickname;
+    updateTopbarAvatar();
     startNotifPolling();
     showDashboard();
   } else {

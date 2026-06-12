@@ -14,7 +14,7 @@ router.post('/:projectId/messages', projectMemberRequired, async (req, res) => {
     sender: req.user.id,
     content: content.trim(),
   });
-  await message.populate('sender', 'nickname');
+  await message.populate('sender', 'nickname avatar');
   res.status(201).json({ message });
 });
 
@@ -23,7 +23,7 @@ router.get('/:projectId/messages', projectMemberRequired, async (req, res) => {
   const filter = { project: req.project._id };
   if (req.query.after) filter.createdAt = { $gt: new Date(req.query.after) };
   const messages = await Message.find(filter)
-    .populate('sender', 'nickname')
+    .populate('sender', 'nickname avatar')
     .sort({ createdAt: 1 })
     .limit(200);
   res.json({ messages });

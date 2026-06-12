@@ -57,7 +57,7 @@ router.get('/', async (req, res) => {
 
 // 프로젝트 상세
 router.get('/:projectId', projectMemberRequired, async (req, res) => {
-  await req.project.populate('members.user', 'nickname userId email');
+  await req.project.populate('members.user', 'nickname userId email avatar school major studentId');
   res.json({ project: req.project });
 });
 
@@ -68,13 +68,13 @@ router.put('/:projectId/members/:memberId/role', projectMemberRequired, leaderRe
   if (!member) return res.status(404).json({ error: '해당 멤버가 없습니다.' });
   member.role = role || '';
   await req.project.save();
-  await req.project.populate('members.user', 'nickname userId');
+  await req.project.populate('members.user', 'nickname userId avatar');
   res.json({ project: req.project });
 });
 
 // 지분 조회: 멤버별 점수를 백분율로 환산해서 반환
 router.get('/:projectId/shares', projectMemberRequired, async (req, res) => {
-  await req.project.populate('members.user', 'nickname userId');
+  await req.project.populate('members.user', 'nickname userId avatar');
   const total = req.project.members.reduce((sum, m) => sum + Math.max(m.score, 0), 0);
   const shares = req.project.members.map((m) => ({
     user: m.user,
