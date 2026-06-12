@@ -44,9 +44,13 @@ function switchAuth(mode) {
 // ===== 인증 =====
 async function signup() {
   try {
+    const password = document.getElementById('signupPw').value;
+    if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,}$/.test(password)) {
+      return alert('비밀번호는 6자 이상이며 영문, 숫자, 특수기호를 모두 포함해야 합니다.');
+    }
     const data = await api('POST', '/auth/signup', {
       userId: document.getElementById('signupId').value.trim(),
-      password: document.getElementById('signupPw').value,
+      password,
       nickname: document.getElementById('signupNickname').value.trim(),
       email: document.getElementById('signupEmail').value.trim(),
     });

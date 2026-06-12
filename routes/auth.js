@@ -14,12 +14,18 @@ function signToken(user) {
   );
 }
 
-// 회원가입: id / pw / 닉네임 / 이메일
+// 비밀번호 규칙: 6자 이상 + 영문/숫자/특수기호 모두 포함
+const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,}$/;
+
+// 회원가입: id / pw / 닉네임 / 이메일 (비밀번호는 bcrypt 해시로 저장)
 router.post('/signup', async (req, res) => {
   try {
     const { userId, password, nickname, email } = req.body;
     if (!userId || !password || !nickname || !email) {
       return res.status(400).json({ error: 'id, 비밀번호, 닉네임, 이메일을 모두 입력하세요.' });
+    }
+    if (!PASSWORD_RULE.test(password)) {
+      return res.status(400).json({ error: '비밀번호는 6자 이상이며 영문, 숫자, 특수기호를 모두 포함해야 합니다.' });
     }
     const dup = await User.findOne({ $or: [{ userId }, { email }] });
     if (dup) {

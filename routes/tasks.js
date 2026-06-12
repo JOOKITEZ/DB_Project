@@ -66,11 +66,12 @@ router.put('/:projectId/tasks/:taskId/status', projectMemberRequired, async (req
   if (status === '완료' && !wasDone) {
     task.completedAt = new Date();
 
-    // 기한 내 완료면 기여도 가산 (+10)
-    if (task.completedAt <= task.dueDate && !task.penaltyApplied) {
+    // 기한 내 완료면 기여도 가산 (+10) — rewardApplied로 중복 가산 방지
+    if (task.completedAt <= task.dueDate && !task.rewardApplied && !task.penaltyApplied) {
       const member = req.project.members.find((m) => m.user.toString() === task.assignee.toString());
       if (member) {
         member.score += 10;
+        task.rewardApplied = true;
         await req.project.save();
       }
     }
@@ -89,6 +90,14 @@ router.put('/:projectId/tasks/:taskId/status', projectMemberRequired, async (req
         message: `[${req.project.name}] 이전 단계 "${task.title}"이(가) 완료되었습니다. 이제 "${nextTask.title}"을(를) 시작하세요! 기한: ${nextTask.dueDate.toLocaleDateString('ko-KR')}`,
       });
     }
+  } else if (status !== '완료' && wasDone && task.rewardApplied) {
+    // 완료를 취소하면 받았던 가산점도 회수
+    const member = req.project.members.find((m) => m.user.toString() === task.assignee.toString());
+    if (member) {
+      member.score -= 10;
+      task.rewardApplied = false;
+      await req.project.save();
+    }
   }
 
   await task.save();
@@ -96,8 +105,23 @@ router.put('/:projectId/tasks/:taskId/status', projectMemberRequired, async (req
 });
 
 // 할 일 삭제 (팀장 전용)
+// 기한 내 완료로 가산점(+10)을 받은 할 일이면, 삭제 시 가산점도 함께 회수한다
 router.delete('/:projectId/tasks/:taskId', projectMemberRequired, leaderRequired, async (req, res) => {
-  await Task.deleteOne({ _id: req.params.taskId, project: req.project._id });
+  const task = await Task.findOne({ _id: req.params.taskId, project: req.project._id });
+  if (!task) return res.status(404).json({ error: '할 일을 찾을 수 없습니다.' });
+
+  // rewardApplied 플래그가 없던 예전 데이터도 완료 조건으로 판별
+  const rewarded = task.rewardApplied ||
+    (task.status === '완료' && task.completedAt && task.completedAt <= task.dueDate && !task.penaltyApplied);
+  if (rewarded) {
+    const member = req.project.members.find((m) => m.user.toString() === task.assignee.toString());
+    if (member) {
+      member.score -= 10;
+      await req.project.save();
+    }
+  }
+
+  await task.deleteOne();
   res.json({ ok: true });
 });
 

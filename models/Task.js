@@ -24,10 +24,11 @@ const taskSchema = new mongoose.Schema(
       default: '진행전',
     },
     completedAt: { type: Date },
-    // 중복 알림/중복 차감 방지용 플래그
+    // 중복 알림/중복 가감점 방지용 플래그
     notifiedTwoDays: { type: Boolean, default: false },
     notifiedOneDay: { type: Boolean, default: false },
     penaltyApplied: { type: Boolean, default: false },
+    rewardApplied: { type: Boolean, default: false }, // 기한 내 완료로 +10을 받았는지
   },
   { timestamps: true }
 );

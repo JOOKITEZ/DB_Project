@@ -29,23 +29,27 @@ async function main() {
     else console.log('✅', name);
   };
 
-  // 1. 회원가입 (팀장, 팀원)
-  let r = await call('POST', '/auth/signup', { userId: 'leader1', password: 'pw1234', nickname: '팀장님', email: 'leader@test.com' });
+  // 1. 회원가입 (팀장, 팀원) — 비밀번호는 6자 이상 + 영문/숫자/특수기호
+  let r = await call('POST', '/auth/signup', { userId: 'leader1', password: 'pw1234!', nickname: '팀장님', email: 'leader@test.com' });
   assert(r.status === 201 && r.data.token, '회원가입(팀장)');
   const leaderToken = r.data.token;
   const leaderId = r.data.user.id;
 
-  r = await call('POST', '/auth/signup', { userId: 'member1', password: 'pw1234', nickname: '팀원A', email: 'member@test.com' });
+  r = await call('POST', '/auth/signup', { userId: 'member1', password: 'pw1234!', nickname: '팀원A', email: 'member@test.com' });
   assert(r.status === 201, '회원가입(팀원)');
   const memberToken = r.data.token;
   const memberId = r.data.user.id;
 
+  // 약한 비밀번호 거부 (특수기호 없음)
+  r = await call('POST', '/auth/signup', { userId: 'weakpw', password: 'abc123', nickname: 'x', email: 'weak@x.com' });
+  assert(r.status === 400, '약한 비밀번호 거부');
+
   // 중복 가입 거부
-  r = await call('POST', '/auth/signup', { userId: 'leader1', password: 'x', nickname: 'x', email: 'x@x.com' });
+  r = await call('POST', '/auth/signup', { userId: 'leader1', password: 'abc123!', nickname: 'x', email: 'x@x.com' });
   assert(r.status === 409, '중복 id 거부');
 
   // 로그인
-  r = await call('POST', '/auth/login', { userId: 'leader1', password: 'pw1234' });
+  r = await call('POST', '/auth/login', { userId: 'leader1', password: 'pw1234!' });
   assert(r.status === 200 && r.data.token, '로그인');
 
   // 2. 프로젝트 생성 → 4자리 초대코드, 생성자가 팀장
@@ -91,6 +95,13 @@ async function main() {
   const memberShare = r.data.shares.find((s) => s.user._id === memberId);
   assert(memberShare.score === 110, '기한 내 완료 시 +10점');
 
+  // 7-1. 가산점 받은 할 일을 삭제하면 점수도 회수 (110→100)
+  r = await call('DELETE', `/projects/${project._id}/tasks/${task1._id}`, null, leaderToken);
+  assert(r.status === 200, '완료된 할 일 삭제');
+  r = await call('GET', `/projects/${project._id}/shares`, null, leaderToken);
+  const afterDelete = r.data.shares.find((s) => s.user._id === memberId);
+  assert(afterDelete.score === 100, '할 일 삭제 시 가산점 회수 (110→100)');
+
   // 8. 기한 초과 시나리오: 과거 기한 할 일 → 스케줄러 → 지분 차감 + 알림
   const past = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   r = await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '늦은 일', order: 3, dueDate: past }, leaderToken);
@@ -98,7 +109,7 @@ async function main() {
   await checkDeadlines();
   r = await call('GET', `/projects/${project._id}/shares`, null, leaderToken);
   const after = r.data.shares.find((s) => s.user._id === memberId);
-  assert(after.score === 100, '기한 초과 시 -10점 (110→100)');
+  assert(after.score === 90, '기한 초과 시 -10점 (100→90)');
   r = await call('GET', '/notifications', null, memberToken);
   assert(r.data.notifications.some((n) => n.type === '기한초과'), '기한 초과 알림');
 
@@ -124,7 +135,7 @@ async function main() {
   assert(r.data.messages.length === 1 && r.data.messages[0].content === '안녕하세요!', '메시지 조회');
 
   // 12. 비멤버 접근 차단
-  r = await call('POST', '/auth/signup', { userId: 'outsider', password: 'pw', nickname: '외부인', email: 'out@test.com' });
+  r = await call('POST', '/auth/signup', { userId: 'outsider', password: 'out123!', nickname: '외부인', email: 'out@test.com' });
   r = await call('GET', `/projects/${project._id}/tasks`, null, r.data.token);
   assert(r.status === 403, '비멤버 접근 차단');
 
