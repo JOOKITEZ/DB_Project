@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>조별과제 매니저</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <!-- 상단 바 -->
+  <header id="topbar" class="hidden">
+    <div class="brand" onclick="showDashboard()">📋 조별과제 매니저</div>
+    <div class="topbar-right">
+      <div class="bell-wrap">
+        <button id="bellBtn" onclick="toggleNotifications()">🔔<span id="bellBadge" class="badge hidden"></span></button>
+        <div id="notifPanel" class="notif-panel hidden">
+          <div class="notif-head">
+            <span>알림</span>
+            <button class="link-btn" onclick="markAllRead()">모두 읽음</button>
+          </div>
+          <div id="notifList"></div>
+        </div>
+      </div>
+      <span id="myNickname" class="nickname"></span>
+      <button class="ghost-btn" onclick="logout()">로그아웃</button>
+    </div>
+  </header>
+
+  <!-- 로그인 / 회원가입 -->
+  <section id="authView" class="view">
+    <div class="auth-card">
+      <h1>📋 조별과제 매니저</h1>
+      <p class="subtitle">조별과제 운영을 편리하게, 기여도는 투명하게</p>
+
+      <div id="loginForm">
+        <h2>로그인</h2>
+        <input id="loginId" placeholder="아이디" />
+        <input id="loginPw" type="password" placeholder="비밀번호" />
+        <button class="primary-btn" onclick="login()">로그인</button>
+        <p class="switch">계정이 없나요? <button class="link-btn" onclick="switchAuth('signup')">회원가입</button></p>
+      </div>
+
+      <div id="signupForm" class="hidden">
+        <h2>회원가입</h2>
+        <input id="signupId" placeholder="아이디" />
+        <input id="signupPw" type="password" placeholder="비밀번호" />
+        <input id="signupNickname" placeholder="닉네임" />
+        <input id="signupEmail" type="email" placeholder="이메일" />
+        <button class="primary-btn" onclick="signup()">회원가입</button>
+        <p class="switch">이미 계정이 있나요? <button class="link-btn" onclick="switchAuth('login')">로그인</button></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 대시보드: 내 프로젝트 목록 -->
+  <section id="dashboardView" class="view hidden">
+    <div class="container">
+      <div class="dash-actions">
+        <div class="card">
+          <h3>➕ 새 프로젝트 만들기</h3>
+          <input id="newProjectName" placeholder="프로젝트 이름" />
+          <input id="newProjectDesc" placeholder="간단한 설명 (선택)" />
+          <button class="primary-btn" onclick="createProject()">생성 (내가 팀장이 됩니다)</button>
+        </div>
+        <div class="card">
+          <h3>🔑 초대 코드로 참가</h3>
+          <input id="joinCode" placeholder="4자리 초대 코드" maxlength="4" />
+          <button class="primary-btn" onclick="joinProject()">참가하기</button>
+        </div>
+      </div>
+      <h2>내 프로젝트</h2>
+      <div id="projectList" class="project-grid"></div>
+    </div>
+  </section>
+
+  <!-- 프로젝트 상세 -->
+  <section id="projectView" class="view hidden">
+    <div class="container">
+      <div class="project-head">
+        <button class="ghost-btn" onclick="showDashboard()">← 목록으로</button>
+        <h2 id="projectTitle"></h2>
+        <span id="inviteCodeChip" class="chip"></span>
+      </div>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="tasks" onclick="switchTab('tasks')">✅ 할 일</button>
+        <button class="tab" data-tab="resources" onclick="switchTab('resources')">📚 자료조사</button>
+        <button class="tab" data-tab="ppts" onclick="switchTab('ppts')">📊 PPT·대본</button>
+        <button class="tab" data-tab="chat" onclick="switchTab('chat')">💬 메시지</button>
+        <button class="tab" data-tab="shares" onclick="switchTab('shares')">📈 지분</button>
+        <button class="tab" data-tab="members" onclick="switchTab('members')">👥 멤버·역할</button>
+      </nav>
+
+      <!-- 할 일 탭 -->
+      <div id="tab-tasks" class="tab-panel">
+        <div id="taskCreateCard" class="card hidden">
+          <h3>할 일 추가 (팀장)</h3>
+          <div class="form-row">
+            <input id="taskTitle" placeholder="할 일 제목" />
+            <select id="taskAssignee"></select>
+            <input id="taskOrder" type="number" min="1" placeholder="순서" />
+            <input id="taskDue" type="datetime-local" />
+            <button class="primary-btn" onclick="createTask()">추가</button>
+          </div>
+          <input id="taskDesc" placeholder="설명 (선택)" />
+        </div>
+        <div id="taskList"></div>
+      </div>
+
+      <!-- 자료조사 탭 -->
+      <div id="tab-resources" class="tab-panel hidden">
+        <div class="card">
+          <h3>자료 추가</h3>
+          <div class="form-row">
+            <select id="resType">
+              <option value="기사">기사</option>
+              <option value="논문">논문</option>
+              <option value="영상">영상</option>
+            </select>
+            <input id="resTitle" placeholder="제목" />
+            <input id="resUrl" placeholder="링크 (URL)" />
+            <button class="primary-btn" onclick="addResource()">등록</button>
+          </div>
+          <input id="resMemo" placeholder="메모 (선택)" />
+        </div>
+        <div class="filter-row">
+          <button class="chip-btn active" data-filter="" onclick="filterResources('')">전체</button>
+          <button class="chip-btn" data-filter="기사" onclick="filterResources('기사')">기사</button>
+          <button class="chip-btn" data-filter="논문" onclick="filterResources('논문')">논문</button>
+          <button class="chip-btn" data-filter="영상" onclick="filterResources('영상')">영상</button>
+        </div>
+        <div id="resourceList"></div>
+      </div>
+
+      <!-- PPT·대본 탭 -->
+      <div id="tab-ppts" class="tab-panel hidden">
+        <div class="card">
+          <h3>PPT 업로드 (ppt / pptx / pdf)</h3>
+          <div class="form-row">
+            <input id="pptFile" type="file" accept=".ppt,.pptx,.pdf" />
+            <button class="primary-btn" onclick="uploadPpt()">업로드</button>
+          </div>
+        </div>
+        <div id="pptList"></div>
+      </div>
+
+      <!-- 메시지 탭 -->
+      <div id="tab-chat" class="tab-panel hidden">
+        <div class="chat-box">
+          <div id="chatMessages" class="chat-messages"></div>
+          <div class="chat-input-row">
+            <input id="chatInput" placeholder="메시지 입력..." onkeydown="if(event.key==='Enter')sendMessage()" />
+            <button class="primary-btn" onclick="sendMessage()">전송</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 지분 탭 -->
+      <div id="tab-shares" class="tab-panel hidden">
+        <p class="hint">기한 내 완료 시 점수가 오르고(＋10), 기한을 넘기면 점수가 깎입니다(－10). 지분은 점수 비율로 계산됩니다.</p>
+        <div id="shareList"></div>
+      </div>
+
+      <!-- 멤버·역할 탭 -->
+      <div id="tab-members" class="tab-panel hidden">
+        <div id="memberList"></div>
+      </div>
+    </div>
+  </section>
+
+  <script src="/app.js"></script>
+</body>
+</html>
