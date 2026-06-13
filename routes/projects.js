@@ -1,13 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const Project = require('../models/Project');
-const Task = require('../models/Task');
-const Resource = require('../models/Resource');
-const Ppt = require('../models/Ppt');
-const Message = require('../models/Message');
-const Notification = require('../models/Notification');
-const ScoreLog = require('../models/ScoreLog');
+const { Project, Task, Resource, Ppt, Message, Notification, ScoreLog } = require('../models');
 const { authRequired, projectMemberRequired, leaderRequired } = require('../middleware/auth');
 
 const router = express.Router();

@@ -1,8 +1,5 @@
 const cron = require('node-cron');
-const Task = require('../models/Task');
-const Project = require('../models/Project');
-const Notification = require('../models/Notification');
-const ScoreLog = require('../models/ScoreLog');
+const { Task, Project, Notification, ScoreLog } = require('../models');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PENALTY = 10; // 기한 초과 시 차감 점수

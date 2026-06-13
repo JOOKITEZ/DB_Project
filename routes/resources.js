@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const Resource = require('../models/Resource');
+const { Resource } = require('../models');
 const { authRequired, projectMemberRequired } = require('../middleware/auth');
 const { hasCategoryTask } = require('../middleware/permissions');
 

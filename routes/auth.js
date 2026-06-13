@@ -3,8 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
-const User = require('../models/User');
-const VerificationCode = require('../models/VerificationCode');
+const { User, VerificationCode } = require('../models');
 const { sendVerificationEmail } = require('../utils/mailer');
 const { authRequired, JWT_SECRET } = require('../middleware/auth');
 
