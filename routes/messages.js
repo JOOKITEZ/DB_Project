@@ -38,15 +38,19 @@ router.get('/:projectId/messages', projectMemberRequired, async (req, res) => {
 
 // 메시지 삭제 (보낸 사람 본인만) — 실제로는 삭제 표시만 남기는 소프트 삭제
 router.delete('/:projectId/messages/:messageId', projectMemberRequired, async (req, res) => {
-  const message = await Message.findOne({ _id: req.params.messageId, project: req.project._id });
-  if (!message) return res.status(404).json({ error: '메시지를 찾을 수 없습니다.' });
-  if (message.sender.toString() !== req.user.id) {
-    return res.status(403).json({ error: '본인이 보낸 메시지만 삭제할 수 있습니다.' });
+  try {
+    const message = await Message.findOne({ _id: req.params.messageId, project: req.project._id });
+    if (!message) return res.status(404).json({ error: '메시지를 찾을 수 없습니다.' });
+    if (message.sender.toString() !== req.user.id) {
+      return res.status(403).json({ error: '본인이 보낸 메시지만 삭제할 수 있습니다.' });
+    }
+    message.deleted = true;
+    message.content = '';
+    await message.save();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: '메시지 삭제 중 오류가 발생했습니다.' });
   }
-  message.deleted = true;
-  message.content = '';
-  await message.save();
-  res.json({ ok: true });
 });
 
 module.exports = router;
