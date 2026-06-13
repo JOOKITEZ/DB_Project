@@ -177,7 +177,12 @@ input, select {
 .ppt-item { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
 .ppt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .ppt-head a { color: #3f3f46; font-weight: 700; text-decoration: none; flex: 1; }
+.ppt-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.ppt-nav { display: flex; gap: 6px; }
 .ppt-slides { display: flex; flex-direction: column; gap: 16px; }
+/* 가로로 넘겨보기: 한 장씩 스냅 스크롤 */
+.ppt-slides.horizontal { flex-direction: row; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; scroll-behavior: smooth; }
+.ppt-slides.horizontal .ppt-slide { flex: 0 0 100%; scroll-snap-align: center; }
 .ppt-slide { border: 1px solid #e4e4e7; border-radius: 12px; overflow: hidden; background: #fafafa; }
 .ppt-slide .slide-label { background: #3f3f46; color: #fff; font-weight: 700; font-size: 13px; padding: 6px 14px; }
 .slide-canvas-wrap { background: #fff; padding: 10px; text-align: center; }
@@ -281,6 +286,12 @@ textarea {
 
 /* ===== 알림 헤더 보조 문구 ===== */
 .notif-sub { font-size: 11px; color: #a1a1aa; font-weight: 400; }
+
+/* ===== 아이디/비밀번호 찾기 ===== */
+#recoverForm .hint { text-align: left; }
+.recover-result { text-align: center; margin: 10px 0; }
+.recover-result p { font-size: 14px; color: #6b7280; }
+.found-id { font-size: 24px; font-weight: 800; letter-spacing: 1px; color: #3f3f46; margin: 8px 0 14px; }
 
 /* ===== 채움새 / 카드 디테일 ===== */
 .card { padding: 20px 22px; border-radius: 14px; }

@@ -132,6 +132,14 @@ async function main() {
   r = await call('POST', `/projects/${project._id}/resources`, { type: '기타', title: '회의 메모', memo: '다음 회의는 금요일' }, leaderToken);
   assert(r.status === 201, "'기타' 자료는 권한 없이 url 없이 등록 가능");
 
+  // 10-1b. 팀장도 남이 등록한 자료는 삭제할 수 없다 (등록자 본인만 삭제)
+  r = await call('POST', `/projects/${project._id}/resources`, { type: '논문', title: '두번째 논문', url: 'https://example.com/p2' }, memberToken);
+  const memberResId = r.data.resource._id;
+  r = await call('DELETE', `/projects/${project._id}/resources/${memberResId}`, null, leaderToken);
+  assert(r.status === 403, '팀장이 남의 자료 삭제 거부');
+  r = await call('DELETE', `/projects/${project._id}/resources/${memberResId}`, null, memberToken);
+  assert(r.status === 200, '등록자 본인은 자료 삭제 가능');
+
   // 10-2. 프로필 수정 (닉네임/학교/학과/학번)
   r = await call('PUT', '/auth/profile', { nickname: '팀장님2', school: '한국대', major: '컴공', studentId: '2024001' }, leaderToken);
   assert(r.status === 200 && r.data.user.nickname === '팀장님2' && r.data.user.school === '한국대', '프로필 수정');
@@ -146,6 +154,29 @@ async function main() {
   r = await call('POST', '/auth/signup', { userId: 'outsider', password: 'out123!', nickname: '외부인', email: 'out@test.com' });
   r = await call('GET', `/projects/${project._id}/tasks`, null, r.data.token);
   assert(r.status === 403, '비멤버 접근 차단');
+
+  // 13. 아이디/비밀번호 찾기 (이메일 인증코드 — 메일 미설정 시 devCode 사용)
+  r = await call('POST', '/auth/find/send-code', { email: 'leader@test.com' });
+  assert(r.status === 200 && r.data.devCode, '인증코드 발송(개발 모드 devCode)');
+  const findCode = r.data.devCode;
+  r = await call('POST', '/auth/find/send-code', { email: 'nobody@test.com' });
+  assert(r.status === 404, '미가입 이메일 인증코드 거부');
+  r = await call('POST', '/auth/find/verify-code', { email: 'leader@test.com', code: '0000' });
+  assert(r.status === 400, '잘못된 인증코드 거부');
+  r = await call('POST', '/auth/find/verify-code', { email: 'leader@test.com', code: findCode });
+  assert(r.status === 200 && r.data.userId === 'leader1', '인증코드 확인 → 아이디 찾기');
+  r = await call('POST', '/auth/find/reset-password', { email: 'leader@test.com', code: findCode, newPassword: 'newpw99!' });
+  assert(r.status === 200, '인증 후 비밀번호 변경');
+  r = await call('POST', '/auth/login', { userId: 'leader1', password: 'newpw99!' });
+  assert(r.status === 200 && r.data.token, '변경된 비밀번호로 로그인');
+
+  // 14. 프로젝트 삭제 (팀장 전용) — 마지막에 수행
+  r = await call('DELETE', `/projects/${project._id}`, null, memberToken);
+  assert(r.status === 403, '팀원의 프로젝트 삭제 거부');
+  r = await call('DELETE', `/projects/${project._id}`, null, leaderToken);
+  assert(r.status === 200, '팀장의 프로젝트 삭제');
+  r = await call('GET', `/projects/${project._id}/tasks`, null, leaderToken);
+  assert(r.status === 403 || r.status === 404, '삭제된 프로젝트 접근 불가');
 
   console.log(process.exitCode ? '\n일부 테스트 실패' : '\n전체 스모크 테스트 통과 🎉');
   await mongod.stop();

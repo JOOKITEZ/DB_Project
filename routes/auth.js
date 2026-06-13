@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const User = require('../models/User');
+const VerificationCode = require('../models/VerificationCode');
+const { sendVerificationEmail } = require('../utils/mailer');
 const { authRequired, JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
@@ -101,6 +103,76 @@ router.put('/profile', authRequired, async (req, res) => {
   if (studentId !== undefined) user.studentId = String(studentId).trim();
   await user.save();
   res.json({ user: publicUser(user) });
+});
+
+// ===== 아이디 / 비밀번호 찾기 (이메일 인증코드) =====
+
+// 1단계: 이메일로 4자리 인증코드 발송 (가입된 이메일이어야 함)
+router.post('/find/send-code', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim();
+    if (!email) return res.status(400).json({ error: '이메일을 입력하세요.' });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: '가입된 이메일이 아닙니다.' });
+
+    const code = String(Math.floor(1000 + Math.random() * 9000)); // 4자리
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10분
+    await VerificationCode.findOneAndUpdate(
+      { email },
+      { code, expiresAt },
+      { upsert: true, new: true }
+    );
+
+    const { sent } = await sendVerificationEmail(email, code);
+    // 메일 설정이 없으면 개발 편의를 위해 코드를 함께 내려준다 (서버 콘솔에도 출력됨)
+    res.json({ ok: true, sent, ...(sent ? {} : { devCode: code }) });
+  } catch (err) {
+    res.status(500).json({ error: '인증코드 발송 중 오류가 발생했습니다.' });
+  }
+});
+
+// 인증코드 검증 (공통)
+async function checkCode(email, code) {
+  const record = await VerificationCode.findOne({ email });
+  if (!record) return '인증코드를 먼저 요청하세요.';
+  if (record.expiresAt < new Date()) return '인증코드가 만료되었습니다. 다시 요청하세요.';
+  if (record.code !== String(code).trim()) return '인증코드가 일치하지 않습니다.';
+  return null;
+}
+
+// 2단계: 인증코드 확인 → 성공 시 아이디를 알려준다 (아이디 찾기)
+router.post('/find/verify-code', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim();
+    const error = await checkCode(email, req.body.code);
+    if (error) return res.status(400).json({ error });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: '가입된 이메일이 아닙니다.' });
+    res.json({ ok: true, userId: user.userId });
+  } catch (err) {
+    res.status(500).json({ error: '인증 중 오류가 발생했습니다.' });
+  }
+});
+
+// 3단계(비밀번호 찾기): 인증코드 재확인 후 비밀번호 변경
+router.post('/find/reset-password', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim();
+    const { code, newPassword } = req.body;
+    const error = await checkCode(email, code);
+    if (error) return res.status(400).json({ error });
+    if (!PASSWORD_RULE.test(newPassword || '')) {
+      return res.status(400).json({ error: '비밀번호는 6자 이상이며 영문, 숫자, 특수기호를 모두 포함해야 합니다.' });
+    }
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: '가입된 이메일이 아닙니다.' });
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    await VerificationCode.deleteOne({ email }); // 사용한 코드 폐기
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: '비밀번호 변경 중 오류가 발생했습니다.' });
+  }
 });
 
 // 프로필 이미지 업로드

@@ -9,9 +9,11 @@
 | 기능 | 설명 |
 |---|---|
 | 회원가입 / 로그인 | id, 비밀번호(6자 이상 + 영문/숫자/특수기호, bcrypt 해시 저장), 닉네임, 이메일. JWT 인증 |
+| 아이디/비밀번호 찾기 | 가입한 이메일로 **4자리 인증코드**를 받아 아이디를 확인하거나 비밀번호를 재설정 |
 | 프로젝트 생성 | 생성자가 자동으로 **팀장**이 되고, 고유 **4자리 초대 코드**가 부여됨 |
+| 프로젝트 삭제 | **팀장만** 삭제 가능. 할 일·자료·PPT·메시지·알림이 함께 정리됨 |
 | 초대 코드 참가 | 4자리 코드를 입력해 팀원으로 참가 |
-| 역할 부여 | 팀장이 각 팀원에게 역할을 지정 (예: 자료조사, PPT 제작) |
+| 역할 부여 | 팀장이 **팀장 자신 포함 모든 멤버**에게 역할을 지정 (예: 자료조사, PPT 제작) |
 | 할 일 관리 | 팀장·팀원 누구나 추가 가능. 담당자·**종류(category)**·**순서(order)**·**최대 기한(dueDate)** 을 설정 |
 | 작업 권한 | 자료 등록·PPT 업로드·대본 작성은 **해당 종류의 할 일을 배정받은 사람만** 가능 |
 | 작업 바로가기 | 할 일을 클릭하면 그 종류의 작업 화면(자료조사/PPT 탭)으로 자동 이동 |
@@ -21,7 +23,7 @@
 | 자료조사 모음 | 기사 / 논문 / 영상링크 / 기타(메모 중심, url 선택·권한 불필요)를 종류별로 모아보기 |
 | 프로필 | 프로필 이미지·닉네임 변경, 학교/학과/학번(선택) 기입 |
 | 알림 자동 읽음 | 알림 패널을 열면 자동으로 읽음 처리 |
-| PPT 보관함 | ppt·pptx·pdf 업로드. **PDF는 슬라이드를 한 장씩 미리보기**하며 그 아래에 장별 대본 작성 |
+| PPT 보관함 | ppt·pptx·pdf 업로드. **PDF는 슬라이드를 한 장씩 미리보기**하며 그 아래에 장별 대본 작성. 세로 스크롤/가로 넘기기 전환 가능 |
 | 메시지 | 프로젝트별 채팅 (3초 폴링), 보낸 사람 프로필 아이콘 표시 |
 | 멤버 프로필 | 멤버를 클릭하면 프로필(역할·학교·학과 등)을 확인 |
 | 지분 현황 | 팀장·팀원 모두의 지분을 점수 비율(%)과 막대그래프로 표시 |
@@ -91,6 +93,7 @@ npm test
 | `ppts` | project, uploader, originalName, fileName, scripts[{slideNumber, script}] |
 | `messages` | project, sender, content |
 | `notifications` | user, project, type(마감임박/기한초과/다음순서), message, read |
+| `verificationcodes` | email(unique), code(4자리), expiresAt(10분 후 TTL 자동 삭제) |
 
 ## 작업 권한 규칙
 
@@ -106,6 +109,8 @@ npm test
 
 해당 종류의 할 일을 배정받지 않은 사람이 작업을 시도하면 403 오류와 함께 안내 메시지가 표시됩니다.
 
+> 자료·PPT **삭제**는 **등록(업로드)한 본인만** 가능합니다. 팀장이라도 다른 사람이 올린 자료는 삭제할 수 없습니다. (단, 프로젝트 전체 삭제는 팀장만 가능)
+
 ## 지분 계산 방식
 
 - 모든 멤버는 **기본 100점**으로 시작합니다.
@@ -118,10 +123,14 @@ npm test
 ```
 POST   /api/auth/signup                      회원가입
 POST   /api/auth/login                       로그인
+POST   /api/auth/find/send-code              아이디/비밀번호 찾기 인증코드 발송
+POST   /api/auth/find/verify-code            인증코드 확인 → 아이디 반환
+POST   /api/auth/find/reset-password         인증 후 비밀번호 재설정
 GET    /api/projects                         내 프로젝트 목록
 POST   /api/projects                         프로젝트 생성 (초대코드 자동 부여)
 POST   /api/projects/join                    초대 코드로 참가
 GET    /api/projects/:id                     프로젝트 상세
+DELETE /api/projects/:id                     프로젝트 삭제 (팀장)
 PUT    /api/projects/:id/members/:uid/role   역할 부여 (팀장)
 GET    /api/projects/:id/shares              지분 조회
 POST   /api/projects/:id/tasks               할 일 생성 (팀장)

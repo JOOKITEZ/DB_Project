@@ -49,6 +49,74 @@ function show(viewId) {
 function switchAuth(mode) {
   document.getElementById('loginForm').classList.toggle('hidden', mode !== 'login');
   document.getElementById('signupForm').classList.toggle('hidden', mode !== 'signup');
+  document.getElementById('recoverForm').classList.toggle('hidden', mode !== 'recover');
+}
+
+// ===== 아이디 / 비밀번호 찾기 =====
+let recoverMode = 'id'; // 'id' | 'pw'
+
+function openRecover(mode) {
+  recoverMode = mode;
+  document.getElementById('recoverTitle').textContent = mode === 'id' ? '아이디 찾기' : '비밀번호 찾기';
+  document.getElementById('recoverHint').textContent =
+    mode === 'id' ? '가입한 이메일로 인증코드를 보내드립니다.' : '가입한 이메일로 인증코드를 보내 비밀번호를 변경합니다.';
+  // 초기화
+  document.getElementById('recoverEmail').value = '';
+  document.getElementById('recoverCode').value = '';
+  document.getElementById('recoverNewPw').value = '';
+  document.getElementById('recoverNewPw2').value = '';
+  document.getElementById('recoverStep2').classList.add('hidden');
+  document.getElementById('recoverResultId').classList.add('hidden');
+  document.getElementById('recoverResultPw').classList.add('hidden');
+  document.getElementById('recoverSendBtn').textContent = '인증코드 받기';
+  switchAuth('recover');
+}
+
+async function sendRecoverCode() {
+  try {
+    const email = document.getElementById('recoverEmail').value.trim();
+    if (!email) return alert('이메일을 입력하세요.');
+    const data = await api('POST', '/auth/find/send-code', { email });
+    document.getElementById('recoverStep2').classList.remove('hidden');
+    document.getElementById('recoverSendBtn').textContent = '인증코드 다시 받기';
+    if (data.devCode) {
+      // 메일이 설정되지 않은 개발 모드: 코드를 바로 안내
+      alert(`인증코드: ${data.devCode}\n(메일 설정이 없어 화면에 표시합니다. 서버 콘솔에서도 확인 가능)`);
+    } else {
+      alert('이메일로 인증코드를 보냈습니다. 메일함을 확인하세요.');
+    }
+  } catch (e) { alert(e.message); }
+}
+
+async function verifyRecoverCode() {
+  try {
+    const email = document.getElementById('recoverEmail').value.trim();
+    const code = document.getElementById('recoverCode').value.trim();
+    if (code.length !== 4) return alert('인증코드 4자리를 입력하세요.');
+    const data = await api('POST', '/auth/find/verify-code', { email, code });
+    if (recoverMode === 'id') {
+      document.getElementById('recoverFoundId').textContent = data.userId;
+      document.getElementById('recoverResultId').classList.remove('hidden');
+    } else {
+      document.getElementById('recoverResultPw').classList.remove('hidden');
+    }
+  } catch (e) { alert(e.message); }
+}
+
+async function submitNewPassword() {
+  try {
+    const email = document.getElementById('recoverEmail').value.trim();
+    const code = document.getElementById('recoverCode').value.trim();
+    const newPassword = document.getElementById('recoverNewPw').value;
+    const confirm2 = document.getElementById('recoverNewPw2').value;
+    if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,}$/.test(newPassword)) {
+      return alert('비밀번호는 6자 이상이며 영문, 숫자, 특수기호를 모두 포함해야 합니다.');
+    }
+    if (newPassword !== confirm2) return alert('비밀번호 확인이 일치하지 않습니다.');
+    await api('POST', '/auth/find/reset-password', { email, code, newPassword });
+    alert('비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.');
+    switchAuth('login');
+  } catch (e) { alert(e.message); }
 }
 
 // ===== 인증 =====
@@ -205,7 +273,19 @@ async function openProject(projectId) {
     document.getElementById('projectDesc').textContent = project.description || '';
     document.getElementById('inviteCodeChip').textContent = `초대코드 ${project.inviteCode}`;
     show('projectView');
+    document.getElementById('deleteProjectBtn').classList.toggle('hidden', !isLeader());
     switchTab('tasks');
+  } catch (e) { alert(e.message); }
+}
+
+// 프로젝트 삭제 (팀장 전용)
+async function deleteProject() {
+  if (!currentProject) return;
+  if (!confirm(`'${currentProject.name}' 프로젝트를 삭제할까요?\n할 일·자료·PPT·메시지·알림이 모두 사라지며 되돌릴 수 없습니다.`)) return;
+  try {
+    await api('DELETE', `/projects/${currentProject._id}`);
+    alert('프로젝트가 삭제되었습니다.');
+    showDashboard();
   } catch (e) { alert(e.message); }
 }
 
@@ -381,6 +461,13 @@ async function loadPpts() {
         <span class="meta" style="font-size:12px;color:#6b7280">${esc(p.uploader?.nickname || '')} · ${fmtDate(p.createdAt)}</span>
         ${(p.uploader?._id === me.id || isLeader()) ? `<button class="danger-btn" onclick="deletePpt('${p._id}')">삭제</button>` : ''}
       </div>
+      <div class="ppt-toolbar">
+        <button class="ghost-btn accent" id="pptViewBtn-${p._id}" onclick="togglePptView('${p._id}', this)">↔ 가로로 넘겨보기</button>
+        <div class="ppt-nav hidden" id="pptNav-${p._id}">
+          <button class="ghost-btn accent" onclick="pptScroll('${p._id}', -1)">← 이전</button>
+          <button class="ghost-btn accent" onclick="pptScroll('${p._id}', 1)">다음 →</button>
+        </div>
+      </div>
       <div class="ppt-slides" id="pptSlides-${p._id}"></div>
     </div>
   `).join('');
@@ -486,6 +573,24 @@ async function addManualScript(pptId) {
     await api('PUT', `/projects/${currentProject._id}/ppts/${pptId}/scripts`, { slideNumber, script });
     loadPpts();
   } catch (e) { alert(e.message); }
+}
+
+// 세로 스크롤 ↔ 가로 넘기기 전환
+function togglePptView(pptId, btn) {
+  const slides = document.getElementById(`pptSlides-${pptId}`);
+  const nav = document.getElementById(`pptNav-${pptId}`);
+  const horizontal = slides.classList.toggle('horizontal');
+  nav.classList.toggle('hidden', !horizontal);
+  btn.textContent = horizontal ? '↕ 세로로 보기' : '↔ 가로로 넘겨보기';
+  slides.scrollLeft = 0;
+}
+
+// 가로 모드에서 한 장씩 이동
+function pptScroll(pptId, dir) {
+  const slides = document.getElementById(`pptSlides-${pptId}`);
+  const slide = slides.querySelector('.ppt-slide');
+  const step = slide ? slide.getBoundingClientRect().width + 16 : slides.clientWidth;
+  slides.scrollBy({ left: dir * step, behavior: 'smooth' });
 }
 
 async function deletePpt(id) {

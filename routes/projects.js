@@ -1,5 +1,12 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const Project = require('../models/Project');
+const Task = require('../models/Task');
+const Resource = require('../models/Resource');
+const Ppt = require('../models/Ppt');
+const Message = require('../models/Message');
+const Notification = require('../models/Notification');
 const { authRequired, projectMemberRequired, leaderRequired } = require('../middleware/auth');
 
 const router = express.Router();
@@ -70,6 +77,26 @@ router.put('/:projectId/members/:memberId/role', projectMemberRequired, leaderRe
   await req.project.save();
   await req.project.populate('members.user', 'nickname userId avatar');
   res.json({ project: req.project });
+});
+
+// 프로젝트 삭제 (팀장 전용) — 관련 데이터(할 일·자료·PPT·메시지·알림)와 업로드 파일까지 함께 정리
+router.delete('/:projectId', projectMemberRequired, leaderRequired, async (req, res) => {
+  const projectId = req.project._id;
+  // 업로드된 PPT 파일 삭제
+  const ppts = await Ppt.find({ project: projectId });
+  for (const ppt of ppts) {
+    const filePath = path.join(__dirname, '..', 'uploads', ppt.fileName);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
+  await Promise.all([
+    Task.deleteMany({ project: projectId }),
+    Resource.deleteMany({ project: projectId }),
+    Ppt.deleteMany({ project: projectId }),
+    Message.deleteMany({ project: projectId }),
+    Notification.deleteMany({ project: projectId }),
+  ]);
+  await req.project.deleteOne();
+  res.json({ ok: true });
 });
 
 // 지분 조회: 멤버별 점수를 백분율로 환산해서 반환

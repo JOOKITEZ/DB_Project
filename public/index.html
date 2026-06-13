@@ -78,7 +78,39 @@
         <input id="loginId" placeholder="아이디" />
         <input id="loginPw" type="password" placeholder="비밀번호" />
         <button class="primary-btn" onclick="login()">로그인</button>
+        <p class="switch">
+          <button class="link-btn" onclick="openRecover('id')">아이디 찾기</button>
+          ·
+          <button class="link-btn" onclick="openRecover('pw')">비밀번호 찾기</button>
+        </p>
         <p class="switch">계정이 없나요? <button class="link-btn" onclick="switchAuth('signup')">회원가입</button></p>
+      </div>
+
+      <div id="recoverForm" class="hidden">
+        <h2 id="recoverTitle">아이디 찾기</h2>
+        <p class="hint" id="recoverHint">가입한 이메일로 인증코드를 보내드립니다.</p>
+        <input id="recoverEmail" type="email" placeholder="가입한 이메일" />
+        <button class="primary-btn" id="recoverSendBtn" onclick="sendRecoverCode()">인증코드 받기</button>
+
+        <div id="recoverStep2" class="hidden">
+          <input id="recoverCode" placeholder="인증코드 4자리" maxlength="4" inputmode="numeric" />
+          <button class="primary-btn" onclick="verifyRecoverCode()">인증 확인</button>
+        </div>
+
+        <div id="recoverResultId" class="hidden recover-result">
+          <p>회원님의 아이디는</p>
+          <p class="found-id" id="recoverFoundId"></p>
+          <button class="ghost-btn accent" onclick="switchAuth('login')">로그인하러 가기</button>
+        </div>
+
+        <div id="recoverResultPw" class="hidden">
+          <p class="hint">새 비밀번호를 입력하세요. (6자 이상, 영문+숫자+특수기호)</p>
+          <input id="recoverNewPw" type="password" placeholder="새 비밀번호" />
+          <input id="recoverNewPw2" type="password" placeholder="새 비밀번호 확인" />
+          <button class="primary-btn" onclick="submitNewPassword()">비밀번호 변경</button>
+        </div>
+
+        <p class="switch"><button class="link-btn" onclick="switchAuth('login')">← 로그인으로 돌아가기</button></p>
       </div>
 
       <div id="signupForm" class="hidden">
@@ -122,6 +154,7 @@
         <div class="project-title-row">
           <h2 id="projectTitle"></h2>
           <span id="inviteCodeChip" class="chip"></span>
+          <button id="deleteProjectBtn" class="danger-btn hidden" onclick="deleteProject()">프로젝트 삭제</button>
         </div>
         <p id="projectDesc" class="project-desc"></p>
       </div>

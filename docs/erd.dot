@@ -104,6 +104,15 @@ digraph ERD {
       <TR><TD ALIGN="LEFT">read : Boolean</TD></TR>
     </TABLE>>];
 
+  VERIFICATIONCODES [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
+      <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>VERIFICATIONCODES (인증코드)</B></FONT></TD></TR>
+      <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
+      <TR><TD ALIGN="LEFT">email : String (UK, USERS.email 참조)</TD></TR>
+      <TR><TD ALIGN="LEFT">code : String(4) (4자리 인증코드)</TD></TR>
+      <TR><TD ALIGN="LEFT">expiresAt : Date (10분 TTL 자동 삭제)</TD></TR>
+    </TABLE>>];
+
   // ── 관계 (1측 = tee, N측 = crow) ──
   // 내장(식별) 관계: 실선
   PROJECTS -> MEMBERS [dir=both, arrowtail=tee, arrowhead=crow, xlabel="포함 1:N"];
@@ -122,4 +131,5 @@ digraph ERD {
   USERS    -> MESSAGES      [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="발신 1:N"];
   PROJECTS -> NOTIFICATIONS [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="1:N"];
   USERS    -> NOTIFICATIONS [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="수신 1:N"];
+  USERS    -> VERIFICATIONCODES [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="이메일 인증 1:N"];
 }
