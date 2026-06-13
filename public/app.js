@@ -477,6 +477,7 @@ function togglePptUpload() {
 async function loadPpts() {
   const { ppts } = await api('GET', `/projects/${currentProject._id}/ppts`);
   const list = document.getElementById('pptList');
+  activeHorizontalPpt = null; // 목록을 다시 그리면 가로보기 상태 초기화
   // PPT가 있으면 업로드 영역은 접어 두고, 없으면 펼쳐서 바로 올릴 수 있게 한다
   setPptUploadCollapsed(ppts.length > 0);
   if (!ppts.length) {
@@ -607,23 +608,42 @@ async function addManualScript(pptId) {
   } catch (e) { alert(e.message); }
 }
 
+// 현재 키보드 화살표로 넘길 수 있는 가로보기 PPT
+let activeHorizontalPpt = null;
+
 // 세로 스크롤 ↔ 가로 넘기기 전환
 function togglePptView(pptId, btn) {
   const slides = document.getElementById(`pptSlides-${pptId}`);
   const nav = document.getElementById(`pptNav-${pptId}`);
   const horizontal = slides.classList.toggle('horizontal');
   nav.classList.toggle('hidden', !horizontal);
-  btn.textContent = horizontal ? '↕ 세로로 보기' : '↔ 가로로 넘겨보기';
+  btn.textContent = horizontal ? '↕ 세로로 보기' : '↔ 가로로 넘겨보기 (← → 키)';
   slides.scrollLeft = 0;
+  // 가로보기로 켜면 화살표 키 대상이 되고, 끄면 해제
+  activeHorizontalPpt = horizontal ? pptId : (activeHorizontalPpt === pptId ? null : activeHorizontalPpt);
 }
 
 // 가로 모드에서 한 장씩 이동
 function pptScroll(pptId, dir) {
   const slides = document.getElementById(`pptSlides-${pptId}`);
+  if (!slides) return;
   const slide = slides.querySelector('.ppt-slide');
   const step = slide ? slide.getBoundingClientRect().width + 16 : slides.clientWidth;
   slides.scrollBy({ left: dir * step, behavior: 'smooth' });
 }
+
+// 노트북 좌우 화살표 키로 가로보기 PPT 페이지 이동
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  if (!activeHorizontalPpt) return;
+  // 대본 입력 중일 때는 텍스트 커서 이동을 방해하지 않는다
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+  const slides = document.getElementById(`pptSlides-${activeHorizontalPpt}`);
+  if (!slides || !slides.classList.contains('horizontal')) { activeHorizontalPpt = null; return; }
+  e.preventDefault();
+  pptScroll(activeHorizontalPpt, e.key === 'ArrowRight' ? 1 : -1);
+});
 
 async function deletePpt(id) {
   if (!confirm('이 PPT를 삭제할까요?')) return;
@@ -639,7 +659,7 @@ let lastMsgSig = null;
 
 function renderMessage(m) {
   const mine = m.sender?._id === me.id;
-  const head = `<div class="sender">${esc(m.sender?.nickname || '')} · ${fmtDate(m.createdAt)}</div>`;
+  const head = `<div class="sender"><span class="msg-name">${esc(m.sender?.nickname || '')}</span><span class="msg-time">${fmtDate(m.createdAt)}</span></div>`;
   if (m.deleted) {
     return `
     <div class="msg ${mine ? 'mine' : ''} deleted">

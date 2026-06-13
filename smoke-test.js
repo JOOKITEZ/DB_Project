@@ -159,15 +159,18 @@ async function main() {
   r = await call('GET', `/projects/${project._id}/messages`, null, leaderToken);
   assert(r.data.messages[0].deleted === true && r.data.messages[0].content === '', '삭제된 메시지는 내용 없이 표시만 남음');
 
-  // 11-2. 할 일 삭제 시 뒤 순서가 한 칸씩 당겨진다 (order 2, 3 → 1, 2)
-  let future2 = new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString();
-  await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '순서정리A', category: '기타', order: 1, dueDate: future2 }, leaderToken);
-  let rb = await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '순서정리B', category: '기타', order: 2, dueDate: future2 }, leaderToken);
-  await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '순서정리C', category: '기타', order: 3, dueDate: future2 }, leaderToken);
-  await call('DELETE', `/projects/${project._id}/tasks/${rb.data.task._id}`, null, leaderToken); // order 2 삭제
-  r = await call('GET', `/projects/${project._id}/tasks`, null, leaderToken);
-  const cTask = r.data.tasks.find((t) => t.title === '순서정리C');
-  assert(cTask && cTask.order === 2, '할 일 삭제 시 뒤 순서 자동 조정 (3→2)');
+  // 11-2. 할 일 삭제 시 남은 할 일이 1,2,3…으로 다시 당겨진다 (독립 프로젝트로 검증)
+  const future2 = new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString();
+  const op = (await call('POST', '/projects', { name: '순서테스트' }, leaderToken)).data.project;
+  await call('POST', `/projects/${op._id}/tasks`, { assignee: leaderId, title: 'T1', category: '기타', order: 1, dueDate: future2 }, leaderToken);
+  const t2 = (await call('POST', `/projects/${op._id}/tasks`, { assignee: leaderId, title: 'T2', category: '기타', order: 2, dueDate: future2 }, leaderToken)).data.task;
+  await call('POST', `/projects/${op._id}/tasks`, { assignee: leaderId, title: 'T3', category: '기타', order: 3, dueDate: future2 }, leaderToken);
+  await call('DELETE', `/projects/${op._id}/tasks/${t2._id}`, null, leaderToken); // 가운데(2) 삭제
+  r = await call('GET', `/projects/${op._id}/tasks`, null, leaderToken);
+  const orders = r.data.tasks.map((t) => t.order).sort((a, b) => a - b);
+  assert(JSON.stringify(orders) === JSON.stringify([1, 2]), '할 일 삭제 후 순서 1,2로 재정렬');
+  const t3 = r.data.tasks.find((t) => t.title === 'T3');
+  assert(t3 && t3.order === 2, '뒤 할 일이 앞으로 당겨짐 (T3: 3→2)');
 
   // 12. 비멤버 접근 차단
   r = await call('POST', '/auth/signup', { userId: 'outsider', password: 'out123!', nickname: '외부인', email: 'out@test.com' });

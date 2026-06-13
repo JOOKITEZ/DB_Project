@@ -226,7 +226,10 @@ input, select {
 .msg { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px; max-width: 80%; }
 .msg-avatar { cursor: default; border-color: #f4f4f5; }
 .msg-content { min-width: 0; }
-.msg .sender { font-size: 11px; color: #6b7280; margin-bottom: 3px; }
+.msg .sender { margin-bottom: 3px; display: flex; align-items: baseline; gap: 6px; }
+.msg .msg-name { font-size: 14px; font-weight: 700; color: #27272a; }
+.msg .msg-time { font-size: 11px; color: #9ca3af; }
+.msg.mine .sender { justify-content: flex-end; }
 .msg .bubble { background: #f3f4f6; border-radius: 12px; padding: 8px 12px; font-size: 14px; display: inline-block; text-align: left; word-break: break-word; }
 .msg.mine { margin-left: auto; flex-direction: row-reverse; }
 .msg.mine .sender { text-align: right; }
