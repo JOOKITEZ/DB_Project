@@ -90,6 +90,9 @@ npm test
 
 ## DB 컬렉션 구조 (MongoDB)
 
+> 전체 스키마(필드 타입·제약·인덱스·관계)를 한눈에 보려면 **[docs/SCHEMA.md](docs/SCHEMA.md)** 참고.
+
+
 | 컬렉션 | 주요 필드 |
 |---|---|
 | `users` | userId, password(해시), nickname, email, avatar, school, major, studentId |
