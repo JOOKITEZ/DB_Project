@@ -9,6 +9,8 @@ const resourceSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true },
     url: { type: String, default: '', trim: true }, // 기타는 선택사항
     memo: { type: String, default: '' },
+    fileName: { type: String, default: '' }, // 첨부파일 저장명 (선택)
+    originalName: { type: String, default: '' }, // 첨부파일 원본명
   },
   { timestamps: true }
 );

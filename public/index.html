@@ -12,6 +12,7 @@
   <header id="topbar" class="hidden">
     <div class="brand" onclick="showDashboard()">🧩 조각</div>
     <div class="topbar-right">
+      <button id="themeBtn" class="icon-round" onclick="toggleTheme()" title="다크 모드 전환">🌙</button>
       <div class="bell-wrap">
         <button id="bellBtn" onclick="toggleNotifications()">🔔<span id="bellBadge" class="badge hidden"></span></button>
         <div id="notifPanel" class="notif-panel hidden">
@@ -43,6 +44,7 @@
       <input id="profileMajor" placeholder="예: 컴퓨터공학과" />
       <label class="field-label">학번 (선택)</label>
       <input id="profileStudentId" placeholder="예: 2024123456" />
+      <button id="pushBtn" class="ghost-btn accent push-btn" onclick="enablePush()">🔔 브라우저 알림 켜기</button>
       <div class="modal-actions">
         <button class="ghost-btn" onclick="closeProfile()">닫기</button>
         <button class="primary-btn" onclick="saveProfile()">저장</button>
@@ -141,6 +143,11 @@
           <button class="primary-btn" onclick="joinProject()">참가하기</button>
         </div>
       </div>
+      <div id="myTasksSection" class="card my-tasks hidden">
+        <h3>⏰ 내 할 일 (마감 임박)</h3>
+        <div id="myTasksList"></div>
+      </div>
+
       <h2>내 프로젝트</h2>
       <div id="projectList" class="project-grid"></div>
     </div>
@@ -191,7 +198,13 @@
           </div>
           <input id="taskDesc" placeholder="설명 (선택)" />
         </div>
+        <div class="view-toggle">
+          <button id="taskViewList" class="seg-btn active" onclick="setTaskView('list')">☰ 목록</button>
+          <button id="taskViewCal" class="seg-btn" onclick="setTaskView('calendar')">📅 캘린더</button>
+          <span class="view-hint">목록에서 항목을 끌어 순서를 바꿀 수 있어요</span>
+        </div>
         <div id="taskList"></div>
+        <div id="taskCalendar" class="hidden"></div>
       </div>
 
       <!-- 자료조사 탭 -->
@@ -211,13 +224,21 @@
             <button class="primary-btn" onclick="addResource()">등록</button>
           </div>
           <textarea id="resMemo" rows="2" placeholder="메모 (선택)"></textarea>
+          <label class="file-attach">
+            📎 파일 첨부 (선택)
+            <input id="resFile" type="file" onchange="document.getElementById('resFileName').textContent=this.files[0]?this.files[0].name:''" />
+            <span id="resFileName" class="file-name"></span>
+          </label>
         </div>
-        <div class="filter-row">
-          <button class="chip-btn active" data-filter="" onclick="filterResources('')">전체</button>
-          <button class="chip-btn" data-filter="기사" onclick="filterResources('기사')">기사</button>
-          <button class="chip-btn" data-filter="논문" onclick="filterResources('논문')">논문</button>
-          <button class="chip-btn" data-filter="영상" onclick="filterResources('영상')">영상</button>
-          <button class="chip-btn" data-filter="기타" onclick="filterResources('기타')">기타</button>
+        <div class="res-controls">
+          <div class="filter-row">
+            <button class="chip-btn active" data-filter="" onclick="filterResources('')">전체</button>
+            <button class="chip-btn" data-filter="기사" onclick="filterResources('기사')">기사</button>
+            <button class="chip-btn" data-filter="논문" onclick="filterResources('논문')">논문</button>
+            <button class="chip-btn" data-filter="영상" onclick="filterResources('영상')">영상</button>
+            <button class="chip-btn" data-filter="기타" onclick="filterResources('기타')">기타</button>
+          </div>
+          <input id="resSearch" class="res-search" placeholder="🔍 제목 검색" oninput="onResSearch()" />
         </div>
         <div id="resourceList"></div>
       </div>
@@ -253,8 +274,10 @@
 
       <!-- 지분 탭 -->
       <div id="tab-shares" class="tab-panel hidden">
-        <p class="hint">기한 내 완료 시 점수가 오르고(＋10), 기한을 넘기면 점수가 깎입니다(－10). 지분은 점수 비율로 계산됩니다.</p>
+        <p class="hint">기한 내 완료 시 점수가 오르고(＋10), 기한을 넘기면 점수가 깎입니다(－10). 지분은 점수 비율로 계산됩니다. <b>각 항목을 누르면 산정 내역</b>이 보여요.</p>
         <div id="shareList"></div>
+        <h3 class="score-log-title">📜 전체 지분 산정 내역</h3>
+        <div id="scoreLogList"></div>
       </div>
 
       <!-- 멤버·역할 탭 -->

@@ -7,7 +7,7 @@ const notificationSchema = new mongoose.Schema(
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
     type: {
       type: String,
-      enum: ['마감임박', '기한초과', '다음순서', '일반'],
+      enum: ['마감임박', '기한초과', '다음순서', '멘션', '일반'],
       default: '일반',
     },
     message: { type: String, required: true },

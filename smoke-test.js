@@ -172,6 +172,29 @@ async function main() {
   const t3 = r.data.tasks.find((t) => t.title === 'T3');
   assert(t3 && t3.order === 2, '뒤 할 일이 앞으로 당겨짐 (T3: 3→2)');
 
+  // 11-3. 순서 일괄 변경(드래그 앤 드롭)
+  const reorderIds = r.data.tasks.map((t) => t._id).reverse();
+  r = await call('PUT', `/projects/${op._id}/tasks/reorder`, { orderedIds: reorderIds }, leaderToken);
+  assert(r.status === 200, '할 일 순서 일괄 변경(reorder)');
+
+  // 11-4. 내 할 일 모아보기 (여러 프로젝트에 걸친 미완료 할 일)
+  r = await call('GET', '/projects/my-tasks', null, leaderToken);
+  assert(Array.isArray(r.data.tasks), '내 할 일 모아보기');
+
+  // 11-5. 지분 산정 내역 기록 확인 (앞서 +10/−10이 발생함)
+  r = await call('GET', `/projects/${project._id}/score-logs`, null, leaderToken);
+  assert(Array.isArray(r.data.logs) && r.data.logs.length >= 1, '지분 산정 내역 기록됨');
+
+  // 11-6. 자료 제목 검색
+  r = await call('GET', `/projects/${project._id}/resources?q=${encodeURIComponent('NoSQL')}`, null, leaderToken);
+  assert(Array.isArray(r.data.resources), '자료 제목 검색');
+
+  // 11-7. @멘션 알림: 팀원이 팀장을 언급하면 팀장에게 멘션 알림
+  r = await call('POST', `/projects/${project._id}/messages`, { content: '@팀장님2 확인 부탁해요' }, memberToken);
+  assert(r.status === 201, '멘션 포함 메시지 전송');
+  r = await call('GET', '/notifications', null, leaderToken);
+  assert(r.data.notifications.some((n) => n.type === '멘션'), '@멘션 알림 수신');
+
   // 12. 비멤버 접근 차단
   r = await call('POST', '/auth/signup', { userId: 'outsider', password: 'out123!', nickname: '외부인', email: 'out@test.com' });
   r = await call('GET', `/projects/${project._id}/tasks`, null, r.data.token);

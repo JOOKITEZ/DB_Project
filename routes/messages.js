@@ -1,20 +1,39 @@
 const express = require('express');
 const Message = require('../models/Message');
+const Notification = require('../models/Notification');
 const { authRequired, projectMemberRequired } = require('../middleware/auth');
 
 const router = express.Router();
 router.use(authRequired);
 
-// 메시지 전송
+// 메시지 전송 — 본문의 @닉네임 을 찾아 해당 멤버에게 멘션 알림을 보낸다
 router.post('/:projectId/messages', projectMemberRequired, async (req, res) => {
   const { content } = req.body;
   if (!content || !content.trim()) return res.status(400).json({ error: '내용을 입력하세요.' });
+  const text = content.trim();
   const message = await Message.create({
     project: req.project._id,
     sender: req.user.id,
-    content: content.trim(),
+    content: text,
   });
   await message.populate('sender', 'nickname avatar');
+
+  // @멘션 알림: 본문에 @닉네임 이 포함된 멤버에게 (보낸 사람 제외) 알림
+  await req.project.populate('members.user', 'nickname');
+  const mentioned = req.project.members.filter((m) => {
+    if (m.user._id.toString() === req.user.id) return false;
+    const nick = m.user.nickname;
+    return nick && text.includes(`@${nick}`);
+  });
+  if (mentioned.length) {
+    await Notification.insertMany(mentioned.map((m) => ({
+      user: m.user._id,
+      project: req.project._id,
+      type: '멘션',
+      message: `[${req.project.name}] ${message.sender.nickname}님이 메시지에서 회원님을 언급했습니다: "${text.slice(0, 40)}"`,
+    })));
+  }
+
   res.status(201).json({ message });
 });
 

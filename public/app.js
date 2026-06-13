@@ -3,9 +3,13 @@ let token = localStorage.getItem('token') || null;
 let me = JSON.parse(localStorage.getItem('me') || 'null');
 let currentProject = null;
 let resourceFilter = '';
+let resourceQuery = '';
 let lastMessageAt = null;
 let chatPollTimer = null;
 let notifPollTimer = null;
+let currentTasks = [];
+let taskView = 'list';
+let calMonth = null; // 캘린더에 표시 중인 달(Date)
 
 // ===== API 헬퍼 =====
 async function api(method, path, body, isForm = false) {
@@ -37,6 +41,19 @@ function updateTopbarAvatar() {
 function fmtDate(d) {
   return new Date(d).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
+
+// ===== 다크 모드 =====
+function applyTheme(theme) {
+  document.body.classList.toggle('dark', theme === 'dark');
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  const next = document.body.classList.contains('dark') ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+}
+applyTheme(localStorage.getItem('theme') || 'light');
 
 // ===== 화면 전환 =====
 function show(viewId) {
@@ -167,6 +184,7 @@ async function openProfile() {
     document.getElementById('profileMajor').value = user.major || '';
     document.getElementById('profileStudentId').value = user.studentId || '';
     document.getElementById('profileAvatarPreview').innerHTML = avatarHtml(user);
+    updatePushButton();
     document.getElementById('profileModal').classList.remove('hidden');
   } catch (e) { alert(e.message); }
 }
@@ -209,6 +227,7 @@ function logout() {
   localStorage.removeItem('token');
   localStorage.removeItem('me');
   token = null; me = null;
+  seenNotifIds = null;
   stopChatPolling();
   if (notifPollTimer) clearInterval(notifPollTimer);
   document.getElementById('notifPanel').classList.add('hidden');
@@ -221,6 +240,7 @@ async function showDashboard() {
   stopChatPolling();
   currentProject = null;
   show('dashboardView');
+  loadMyTasks();
   try {
     const { projects } = await api('GET', '/projects');
     const list = document.getElementById('projectList');
@@ -239,6 +259,33 @@ async function showDashboard() {
     if (e.message.includes('토큰') || e.message.includes('로그인')) logout();
     else alert(e.message);
   }
+}
+
+// 여러 프로젝트에 걸친 내 미완료 할 일 (마감 임박순)
+async function loadMyTasks() {
+  try {
+    const { tasks } = await api('GET', '/projects/my-tasks');
+    const section = document.getElementById('myTasksSection');
+    const list = document.getElementById('myTasksList');
+    if (!tasks.length) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+    const now = Date.now();
+    list.innerHTML = tasks.map((t) => {
+      const due = new Date(t.dueDate).getTime();
+      const days = Math.ceil((due - now) / (24 * 3600 * 1000));
+      const dday = due < now ? '기한초과' : (days === 0 ? 'D-DAY' : `D-${days}`);
+      const urgent = due < now || days <= 1;
+      return `
+        <div class="mytask-item" onclick="openProject('${t.project._id}')">
+          <span class="mytask-dday ${urgent ? 'urgent' : ''}">${dday}</span>
+          <div class="mytask-body">
+            <div class="mytask-title">${CATEGORY_ICONS[t.category] || ''} ${esc(t.title)}</div>
+            <div class="meta">${esc(t.project.name)} · 기한 ${fmtDate(t.dueDate)}</div>
+          </div>
+          <span class="status-chip status-${t.status}">${t.status}</span>
+        </div>`;
+    }).join('');
+  } catch { /* 무시 */ }
 }
 
 async function createProject() {
@@ -274,6 +321,10 @@ async function openProject(projectId) {
     document.getElementById('inviteCodeChip').textContent = `초대코드 ${project.inviteCode}`;
     show('projectView');
     document.getElementById('deleteProjectBtn').classList.toggle('hidden', !isLeader());
+    // 보기 상태 초기화
+    taskView = 'list'; calMonth = null;
+    resourceFilter = ''; resourceQuery = '';
+    const rs = document.getElementById('resSearch'); if (rs) rs.value = '';
     switchTab('tasks');
   } catch (e) { alert(e.message); }
 }
@@ -345,12 +396,37 @@ async function loadTasks() {
     .map((m) => `<option value="${m.user._id}">${esc(m.user.nickname)}</option>`)
     .join('');
   const { tasks } = await api('GET', `/projects/${currentProject._id}/tasks`);
+  currentTasks = tasks;
+  renderTaskView();
+}
+
+// 목록 / 캘린더 전환
+function setTaskView(mode) {
+  taskView = mode;
+  document.getElementById('taskViewList').classList.toggle('active', mode === 'list');
+  document.getElementById('taskViewCal').classList.toggle('active', mode === 'calendar');
+  document.querySelector('.view-hint').classList.toggle('hidden', mode !== 'list');
+  renderTaskView();
+}
+
+function renderTaskView() {
+  document.getElementById('taskViewList').classList.toggle('active', taskView === 'list');
+  document.getElementById('taskViewCal').classList.toggle('active', taskView === 'calendar');
+  document.querySelector('.view-hint').classList.toggle('hidden', taskView !== 'list');
+  document.getElementById('taskList').classList.toggle('hidden', taskView !== 'list');
+  document.getElementById('taskCalendar').classList.toggle('hidden', taskView !== 'calendar');
+  if (taskView === 'list') renderTaskList();
+  else renderTaskCalendar();
+}
+
+function renderTaskList() {
   const list = document.getElementById('taskList');
-  if (!tasks.length) {
+  if (!currentTasks.length) {
     list.innerHTML = '<p class="hint">등록된 할 일이 없습니다.</p>';
     return;
   }
-  list.innerHTML = tasks.map((t) => {
+  const canDrag = isLeader();
+  list.innerHTML = currentTasks.map((t) => {
     const mineOrLeader = t.assignee._id === me.id || isLeader();
     const actions = mineOrLeader && t.status !== '완료'
       ? `<button class="ghost-btn accent" onclick="setTaskStatus('${t._id}','${t.status === '진행전' ? '진행중' : '완료'}')">${t.status === '진행전' ? '시작' : '완료 처리'}</button>`
@@ -358,7 +434,8 @@ async function loadTasks() {
     const del = isLeader() ? `<button class="danger-btn" onclick="deleteTask('${t._id}')">삭제</button>` : '';
     const cat = t.category || '기타';
     return `
-      <div class="task-item">
+      <div class="task-item" data-id="${t._id}" ${canDrag ? 'draggable="true"' : ''}>
+        ${canDrag ? '<span class="drag-handle" title="끌어서 순서 변경">⠿</span>' : ''}
         <span class="task-order">${t.order}</span>
         <div class="task-body clickable" onclick="goToCategoryTab('${cat}')" title="클릭하면 해당 작업 화면으로 이동합니다">
           <div class="title">${CATEGORY_ICONS[cat] || ''} ${esc(t.title)} <span class="category-chip">${cat}</span></div>
@@ -368,6 +445,89 @@ async function loadTasks() {
         ${actions} ${del}
       </div>`;
   }).join('');
+  if (canDrag) enableTaskDragDrop();
+}
+
+// 드래그 앤 드롭으로 순서 변경 (팀장)
+function enableTaskDragDrop() {
+  const list = document.getElementById('taskList');
+  let dragged = null;
+  let beforeOrder = '';
+  list.addEventListener('dragover', (e) => e.preventDefault());
+  list.querySelectorAll('.task-item').forEach((item) => {
+    item.addEventListener('dragstart', () => {
+      dragged = item; item.classList.add('dragging');
+      beforeOrder = [...list.querySelectorAll('.task-item')].map((el) => el.dataset.id).join(',');
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging'); dragged = null;
+      const afterOrder = [...list.querySelectorAll('.task-item')].map((el) => el.dataset.id).join(',');
+      if (afterOrder !== beforeOrder) saveTaskOrder(); // 순서가 바뀐 경우에만 저장
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (!dragged || dragged === item) return;
+      const after = e.clientY > item.getBoundingClientRect().top + item.offsetHeight / 2;
+      list.insertBefore(dragged, after ? item.nextSibling : item);
+    });
+  });
+}
+
+async function saveTaskOrder() {
+  const orderedIds = [...document.querySelectorAll('#taskList .task-item')].map((el) => el.dataset.id);
+  try {
+    await api('PUT', `/projects/${currentProject._id}/tasks/reorder`, { orderedIds });
+    loadTasks();
+  } catch (e) { alert(e.message); loadTasks(); }
+}
+
+// ===== 마감 캘린더 =====
+const STATUS_DOT = { 진행전: '#9ca3af', 진행중: '#2563eb', 완료: '#16a34a', 기한초과: '#dc2626' };
+
+function calShift(delta) {
+  calMonth.setMonth(calMonth.getMonth() + delta);
+  renderTaskCalendar();
+}
+
+function renderTaskCalendar() {
+  const box = document.getElementById('taskCalendar');
+  if (!calMonth) calMonth = new Date();
+  const year = calMonth.getFullYear();
+  const month = calMonth.getMonth();
+  const first = new Date(year, month, 1);
+  const startDay = first.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // 날짜별 할 일 묶기
+  const byDay = {};
+  currentTasks.forEach((t) => {
+    const d = new Date(t.dueDate);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      (byDay[d.getDate()] = byDay[d.getDate()] || []).push(t);
+    }
+  });
+
+  const today = new Date();
+  const cells = [];
+  for (let i = 0; i < startDay; i++) cells.push('<div class="cal-cell empty"></div>');
+  for (let day = 1; day <= daysInMonth; day++) {
+    const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+    const items = (byDay[day] || []).map((t) => `
+      <div class="cal-task" title="${esc(t.title)} (담당 ${esc(t.assignee.nickname)})" onclick="goToCategoryTab('${t.category || '기타'}')">
+        <span class="cal-dot" style="background:${STATUS_DOT[t.status] || '#9ca3af'}"></span>${esc(t.title)}
+      </div>`).join('');
+    cells.push(`<div class="cal-cell ${isToday ? 'today' : ''}"><div class="cal-date">${day}</div>${items}</div>`);
+  }
+
+  const weekHead = ['일', '월', '화', '수', '목', '금', '토']
+    .map((w) => `<div class="cal-weekday">${w}</div>`).join('');
+  box.innerHTML = `
+    <div class="cal-header">
+      <button class="ghost-btn accent" onclick="calShift(-1)">‹ 이전</button>
+      <strong>${year}년 ${month + 1}월</strong>
+      <button class="ghost-btn accent" onclick="calShift(1)">다음 ›</button>
+    </div>
+    <div class="cal-grid">${weekHead}${cells.join('')}</div>`;
 }
 
 async function createTask() {
@@ -411,11 +571,14 @@ function filterResources(type) {
 }
 
 async function loadResources() {
-  const q = resourceFilter ? `?type=${encodeURIComponent(resourceFilter)}` : '';
+  const params = [];
+  if (resourceFilter) params.push(`type=${encodeURIComponent(resourceFilter)}`);
+  if (resourceQuery) params.push(`q=${encodeURIComponent(resourceQuery)}`);
+  const q = params.length ? `?${params.join('&')}` : '';
   const { resources } = await api('GET', `/projects/${currentProject._id}/resources${q}`);
   const list = document.getElementById('resourceList');
   if (!resources.length) {
-    list.innerHTML = '<p class="hint">등록된 자료가 없습니다.</p>';
+    list.innerHTML = `<p class="hint">${resourceQuery ? '검색 결과가 없습니다.' : '등록된 자료가 없습니다.'}</p>`;
     return;
   }
   const icons = { 기사: '📰', 논문: '📄', 영상: '🎬', 기타: '📝' };
@@ -428,10 +591,20 @@ async function loadResources() {
           : `<span class="res-title">${esc(r.title)}</span>`}
         <div class="meta">${r.type} · ${esc(r.uploader?.nickname || '')} · ${fmtDate(r.createdAt)}</div>
         ${r.memo ? `<p class="res-memo">${esc(r.memo)}</p>` : ''}
+        ${r.fileName ? `<a class="res-file" href="/uploads/${esc(r.fileName)}" download="${esc(r.originalName)}">📎 ${esc(r.originalName)}</a>` : ''}
       </div>
-      ${(r.uploader?._id === me.id || isLeader()) ? `<button class="danger-btn" onclick="deleteResource('${r._id}')">삭제</button>` : ''}
+      ${(r.uploader?._id === me.id) ? `<button class="danger-btn" onclick="deleteResource('${r._id}')">삭제</button>` : ''}
     </div>
   `).join('');
+}
+
+let resSearchTimer = null;
+function onResSearch() {
+  clearTimeout(resSearchTimer);
+  resSearchTimer = setTimeout(() => {
+    resourceQuery = document.getElementById('resSearch').value.trim();
+    loadResources();
+  }, 250);
 }
 
 // 기타 선택 시 url은 선택사항임을 안내
@@ -443,15 +616,19 @@ function onResTypeChange() {
 
 async function addResource() {
   try {
-    await api('POST', `/projects/${currentProject._id}/resources`, {
-      type: document.getElementById('resType').value,
-      title: document.getElementById('resTitle').value.trim(),
-      url: document.getElementById('resUrl').value.trim(),
-      memo: document.getElementById('resMemo').value.trim(),
-    });
+    const fileInput = document.getElementById('resFile');
+    const form = new FormData();
+    form.append('type', document.getElementById('resType').value);
+    form.append('title', document.getElementById('resTitle').value.trim());
+    form.append('url', document.getElementById('resUrl').value.trim());
+    form.append('memo', document.getElementById('resMemo').value.trim());
+    if (fileInput.files.length) form.append('file', fileInput.files[0]);
+    await api('POST', `/projects/${currentProject._id}/resources`, form, true);
     document.getElementById('resTitle').value = '';
     document.getElementById('resUrl').value = '';
     document.getElementById('resMemo').value = '';
+    fileInput.value = '';
+    document.getElementById('resFileName').textContent = '';
     loadResources();
   } catch (e) { alert(e.message); }
 }
@@ -657,6 +834,18 @@ async function deletePpt(id) {
 // 삭제가 모두에게 반영되도록 전체 목록을 불러오되, 변경이 없으면 다시 그리지 않아 스크롤이 튀지 않게 한다
 let lastMsgSig = null;
 
+// 본문의 @닉네임(프로젝트 멤버) 을 강조 표시 (이미 esc 처리된 문자열에 적용)
+function highlightMentions(escaped) {
+  const members = (currentProject?.members || []).map((m) => m.user.nickname).filter(Boolean);
+  members.sort((a, b) => b.length - a.length); // 긴 닉네임 우선 매칭
+  let out = escaped;
+  members.forEach((nick) => {
+    const escNick = esc(nick).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    out = out.replace(new RegExp(`@${escNick}`, 'g'), `<span class="mention">@${esc(nick)}</span>`);
+  });
+  return out;
+}
+
 function renderMessage(m) {
   const mine = m.sender?._id === me.id;
   const head = `<div class="sender"><span class="msg-name">${esc(m.sender?.nickname || '')}</span><span class="msg-time">${fmtDate(m.createdAt)}</span></div>`;
@@ -671,7 +860,7 @@ function renderMessage(m) {
   return `
     <div class="msg ${mine ? 'mine' : ''}">
       <span class="avatar avatar-sm msg-avatar">${avatarHtml(m.sender)}</span>
-      <div class="msg-content">${head}<div class="bubble">${esc(m.content)}</div>${delBtn}</div>
+      <div class="msg-content">${head}<div class="bubble">${highlightMentions(esc(m.content))}</div>${delBtn}</div>
     </div>`;
 }
 
@@ -714,12 +903,20 @@ function stopChatPolling() {
 }
 
 // ===== 지분 =====
+let allScoreLogs = [];
+let scoreLogFilter = null;
+
 async function loadShares() {
-  const { shares } = await api('GET', `/projects/${currentProject._id}/shares`);
-  document.getElementById('shareList').innerHTML = shares
+  const [sharesRes, logsRes] = await Promise.all([
+    api('GET', `/projects/${currentProject._id}/shares`),
+    api('GET', `/projects/${currentProject._id}/score-logs`),
+  ]);
+  allScoreLogs = logsRes.logs;
+  scoreLogFilter = null;
+  document.getElementById('shareList').innerHTML = sharesRes.shares
     .sort((a, b) => b.sharePercent - a.sharePercent)
     .map((s) => `
-      <div class="share-item">
+      <div class="share-item clickable" onclick="filterScoreLogs('${s.user._id}')" title="누르면 이 멤버의 산정 내역만 봅니다">
         <div class="share-top">
           <span class="name"><span class="avatar avatar-sm">${avatarHtml(s.user)}</span> ${esc(s.user.nickname)} ${s.isLeader ? '<span class="leader-chip">팀장</span>' : ''}</span>
           <span class="percent">${s.sharePercent}%</span>
@@ -728,6 +925,32 @@ async function loadShares() {
         <div class="meta">역할: ${esc(s.role || '미지정')} · 점수: ${s.score}점</div>
       </div>
     `).join('');
+  renderScoreLogs();
+}
+
+function filterScoreLogs(userId) {
+  scoreLogFilter = scoreLogFilter === userId ? null : userId;
+  renderScoreLogs();
+}
+
+function renderScoreLogs() {
+  const box = document.getElementById('scoreLogList');
+  const logs = scoreLogFilter ? allScoreLogs.filter((l) => l.user?._id === scoreLogFilter) : allScoreLogs;
+  const title = document.querySelector('.score-log-title');
+  if (title) title.textContent = scoreLogFilter ? '📜 선택한 멤버의 산정 내역 (다시 누르면 전체)' : '📜 전체 지분 산정 내역';
+  if (!logs.length) {
+    box.innerHTML = '<p class="hint">아직 지분 변동 내역이 없습니다. 할 일을 기한 내 완료하면 +10점이 기록돼요.</p>';
+    return;
+  }
+  box.innerHTML = logs.map((l) => `
+    <div class="score-log ${l.delta > 0 ? 'plus' : 'minus'}">
+      <span class="sl-delta">${l.delta > 0 ? '+' : ''}${l.delta}</span>
+      <div class="sl-body">
+        <div class="sl-reason">${esc(l.reason)}</div>
+        <div class="meta">${esc(l.user?.nickname || '')} · ${fmtDate(l.createdAt)}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 // ===== 멤버 · 역할 =====
@@ -790,6 +1013,21 @@ async function setRole(memberId) {
 }
 
 // ===== 알림 =====
+let seenNotifIds = null; // 브라우저 푸시 중복 방지용 (첫 로드는 알림만 표시하고 푸시 안 함)
+
+// 브라우저 알림 권한 요청
+function enablePush() {
+  if (!('Notification' in window)) return alert('이 브라우저는 알림을 지원하지 않습니다.');
+  Notification.requestPermission().then(updatePushButton);
+}
+function updatePushButton() {
+  const btn = document.getElementById('pushBtn');
+  if (!btn || !('Notification' in window)) return;
+  if (Notification.permission === 'granted') { btn.textContent = '🔔 브라우저 알림 켜짐'; btn.disabled = true; }
+  else if (Notification.permission === 'denied') { btn.textContent = '🔕 브라우저 알림 차단됨'; btn.disabled = true; }
+  else { btn.textContent = '🔔 브라우저 알림 켜기'; btn.disabled = false; }
+}
+
 async function loadNotifications() {
   if (!token) return;
   try {
@@ -797,6 +1035,22 @@ async function loadNotifications() {
     const badge = document.getElementById('bellBadge');
     badge.textContent = unreadCount;
     badge.classList.toggle('hidden', unreadCount === 0);
+
+    // 새로 도착한 미읽음 알림을 브라우저 푸시로 표시
+    const unread = notifications.filter((n) => !n.read);
+    if (seenNotifIds === null) {
+      seenNotifIds = new Set(unread.map((n) => n._id)); // 첫 로드는 푸시하지 않음
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      unread.forEach((n) => {
+        if (!seenNotifIds.has(n._id)) {
+          seenNotifIds.add(n._id);
+          try { new Notification('🧩 조각 알림', { body: n.message }); } catch {}
+        }
+      });
+    } else {
+      unread.forEach((n) => seenNotifIds.add(n._id));
+    }
+
     const list = document.getElementById('notifList');
     if (!notifications.length) {
       list.innerHTML = '<div class="notif-empty">알림이 없습니다.</div>';

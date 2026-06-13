@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const Task = require('../models/Task');
 const Project = require('../models/Project');
 const Notification = require('../models/Notification');
+const ScoreLog = require('../models/ScoreLog');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PENALTY = 10; // 기한 초과 시 차감 점수
@@ -28,6 +29,10 @@ async function checkDeadlines() {
           { _id: task.project._id, 'members.user': task.assignee },
           { $inc: { 'members.$.score': -PENALTY } }
         );
+        await ScoreLog.create({
+          project: task.project._id, user: task.assignee, delta: -PENALTY,
+          reason: `기한 초과: ${task.title}`, task: task._id,
+        });
         await Notification.create({
           user: task.assignee,
           project: task.project._id,

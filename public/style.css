@@ -337,3 +337,155 @@ textarea {
 h2 { letter-spacing: -0.02em; }
 .dash-actions .card h3 { font-size: 16px; }
 .hint b { color: #3f3f46; }
+
+/* ===== 상단바 아이콘 버튼 (테마 토글) ===== */
+.icon-round {
+  background: rgba(255,255,255,.12); border: none; color: #fff;
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px;
+}
+.icon-round:hover { background: rgba(255,255,255,.22); }
+
+/* ===== 내 할 일 모아보기 (대시보드) ===== */
+.my-tasks h3 { margin-bottom: 12px; }
+.mytask-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 6px;
+  border-bottom: 1px solid #f3f4f6; cursor: pointer;
+}
+.mytask-item:last-child { border-bottom: none; }
+.mytask-item:hover { background: #f9fafb; }
+.mytask-dday {
+  flex: none; min-width: 56px; text-align: center; font-weight: 800; font-size: 13px;
+  color: #3f3f46; background: #e4e4e7; border-radius: 8px; padding: 6px 8px;
+}
+.mytask-dday.urgent { background: #fee2e2; color: #b91c1c; }
+.mytask-body { flex: 1; min-width: 0; }
+.mytask-title { font-weight: 600; }
+
+/* ===== 할 일 보기 토글 + 드래그 ===== */
+.view-toggle { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.seg-btn {
+  background: #fff; border: 1px solid #d4d4d8; color: #52525b;
+  border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.seg-btn.active { background: #3f3f46; color: #fff; border-color: #3f3f46; }
+.view-hint { font-size: 12px; color: #9ca3af; margin-left: 4px; }
+.drag-handle { cursor: grab; color: #a1a1aa; font-size: 16px; user-select: none; }
+.task-item.dragging { opacity: .5; outline: 2px dashed #a1a1aa; }
+
+/* ===== 마감 캘린더 ===== */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.cal-header strong { font-size: 16px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-weekday { text-align: center; font-size: 12px; font-weight: 700; color: #71717a; padding: 4px 0; }
+.cal-cell {
+  min-height: 84px; background: #fff; border: 1px solid #e4e4e7; border-radius: 8px;
+  padding: 4px; font-size: 12px; overflow: hidden;
+}
+.cal-cell.empty { background: transparent; border: none; }
+.cal-cell.today { border-color: #3f3f46; box-shadow: inset 0 0 0 1px #3f3f46; }
+.cal-date { font-weight: 700; color: #52525b; margin-bottom: 2px; }
+.cal-task {
+  display: flex; align-items: center; gap: 4px; background: #f4f4f5; border-radius: 5px;
+  padding: 2px 5px; margin-bottom: 3px; cursor: pointer; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.cal-task:hover { background: #e4e4e7; }
+.cal-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+/* ===== 자료 검색 / 파일 첨부 ===== */
+.res-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.res-search { width: 220px; margin-bottom: 0; }
+.file-attach { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #52525b; cursor: pointer; }
+.file-attach input[type=file] { font-size: 12px; }
+.file-name { color: #3f3f46; font-weight: 600; }
+.res-file { display: inline-block; margin-top: 6px; font-size: 13px; color: #3f3f46; font-weight: 600; text-decoration: none; }
+.res-file:hover { text-decoration: underline; }
+
+/* ===== 지분 산정 내역 ===== */
+.share-item.clickable { cursor: pointer; transition: background .12s; }
+.share-item.clickable:hover { background: #f9fafb; }
+.score-log-title { margin: 22px 0 12px; font-size: 15px; }
+.score-log {
+  display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 10px;
+  padding: 10px 14px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.sl-delta { flex: none; min-width: 44px; text-align: center; font-weight: 800; border-radius: 8px; padding: 6px 0; }
+.score-log.plus .sl-delta { background: #dcfce7; color: #15803d; }
+.score-log.minus .sl-delta { background: #fee2e2; color: #b91c1c; }
+.sl-body { flex: 1; min-width: 0; }
+.sl-reason { font-weight: 600; }
+
+/* ===== 메시지 멘션 ===== */
+.mention { color: #4f46e5; font-weight: 700; }
+.msg.mine .mention { color: #c7d2fe; }
+.push-btn { width: 100%; margin-top: 14px; }
+
+/* ===== 다크 모드 ===== */
+body.dark { background: #18181b; color: #e4e4e7; }
+body.dark .card,
+body.dark .project-card,
+body.dark .task-item,
+body.dark .resource-item,
+body.dark .share-item,
+body.dark .member-item,
+body.dark .ppt-item,
+body.dark .ppt-slide,
+body.dark .chat-box,
+body.dark .tabs,
+body.dark .auth-card,
+body.dark .modal,
+body.dark .notif-panel,
+body.dark .score-log,
+body.dark .my-tasks {
+  background: #27272a; color: #e4e4e7; box-shadow: 0 1px 4px rgba(0,0,0,.5);
+}
+body.dark input, body.dark select, body.dark textarea {
+  background: #18181b; color: #e4e4e7; border-color: #3f3f46;
+}
+body.dark .hint, body.dark .meta, body.dark .project-desc,
+body.dark .switch, body.dark .auth-card .subtitle,
+body.dark .task-body .meta, body.dark .resource-item .meta,
+body.dark .share-item .meta, body.dark .member-item .info .meta,
+body.dark .view-hint, body.dark .notif-item .time { color: #a1a1aa; }
+body.dark .hint b, body.dark .icon-btn, body.dark .link-btn { color: #c7d2fe; }
+
+/* 표면 위 보조 요소 */
+body.dark .tab { color: #a1a1aa; }
+body.dark .tab:hover, body.dark .seg-btn:hover { background: #3f3f46; }
+body.dark .tab.active, body.dark .seg-btn.active,
+body.dark .chip-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+body.dark .chip, body.dark .category-chip,
+body.dark .ghost-btn.accent, body.dark .seg-btn,
+body.dark .chip-btn, body.dark .icon-btn,
+body.dark .mytask-dday { background: #3f3f46; color: #e4e4e7; border-color: #52525b; }
+body.dark .ghost-btn.accent:hover { background: #52525b; }
+body.dark .primary-btn { background: #6366f1; }
+body.dark .primary-btn:hover { background: #4f46e5; }
+
+/* 입력/구분선/배경 보정 */
+body.dark .notif-head, body.dark .chat-input-row { border-color: #3f3f46; }
+body.dark .notif-item { border-color: #3f3f46; }
+body.dark .notif-item.unread { background: #3f3f46; }
+body.dark .notif-panel { color: #e4e4e7; }
+body.dark .bubble { background: #3f3f46; color: #e4e4e7; }
+body.dark .msg.mine .bubble { background: #6366f1; color: #fff; }
+body.dark .msg .msg-name { color: #e4e4e7; }
+body.dark .msg.deleted .bubble { background: #27272a; color: #71717a; }
+body.dark .share-bar { background: #3f3f46; }
+body.dark .back-link { color: #a1a1aa; }
+body.dark .back-link:hover { color: #e4e4e7; }
+body.dark h2, body.dark .auth-card h1 { color: #fafafa; }
+
+/* 캘린더 / 내 할 일 / 슬라이드 */
+body.dark .cal-cell { background: #18181b; border-color: #3f3f46; }
+body.dark .cal-cell.today { border-color: #818cf8; box-shadow: inset 0 0 0 1px #818cf8; }
+body.dark .cal-date, body.dark .cal-weekday { color: #a1a1aa; }
+body.dark .cal-task { background: #3f3f46; }
+body.dark .cal-task:hover { background: #52525b; }
+body.dark .mytask-item { border-color: #3f3f46; }
+body.dark .mytask-item:hover, body.dark .share-item.clickable:hover,
+body.dark .mytask-dday.urgent { background: #3f3f46; }
+body.dark .member-main.clickable:hover { background: #3f3f46; }
+body.dark .slide-canvas-wrap { background: #e4e4e7; }
+body.dark .res-memo { background: #18181b; color: #d4d4d8; }
+body.dark .mention { color: #a5b4fc; }

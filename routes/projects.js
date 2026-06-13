@@ -7,6 +7,7 @@ const Resource = require('../models/Resource');
 const Ppt = require('../models/Ppt');
 const Message = require('../models/Message');
 const Notification = require('../models/Notification');
+const ScoreLog = require('../models/ScoreLog');
 const { authRequired, projectMemberRequired, leaderRequired } = require('../middleware/auth');
 
 const router = express.Router();
@@ -62,6 +63,29 @@ router.get('/', async (req, res) => {
   res.json({ projects });
 });
 
+// 여러 프로젝트에 걸친 "내가 맡은 미완료 할 일" 모아보기 (마감 임박순)
+// 주의: '/:projectId'보다 먼저 선언해야 'my-tasks'가 projectId로 잡히지 않는다
+router.get('/my-tasks', async (req, res) => {
+  const myProjects = await Project.find({ 'members.user': req.user.id }).select('_id name');
+  const projectMap = new Map(myProjects.map((p) => [p._id.toString(), p.name]));
+  const tasks = await Task.find({
+    assignee: req.user.id,
+    project: { $in: myProjects.map((p) => p._id) },
+    status: { $ne: '완료' },
+  })
+    .sort({ dueDate: 1 })
+    .limit(50);
+  const result = tasks.map((t) => ({
+    _id: t._id,
+    title: t.title,
+    category: t.category,
+    dueDate: t.dueDate,
+    status: t.status,
+    project: { _id: t.project, name: projectMap.get(t.project.toString()) || '' },
+  }));
+  res.json({ tasks: result });
+});
+
 // 프로젝트 상세
 router.get('/:projectId', projectMemberRequired, async (req, res) => {
   await req.project.populate('members.user', 'nickname userId email avatar school major studentId');
@@ -94,9 +118,19 @@ router.delete('/:projectId', projectMemberRequired, leaderRequired, async (req, 
     Ppt.deleteMany({ project: projectId }),
     Message.deleteMany({ project: projectId }),
     Notification.deleteMany({ project: projectId }),
+    ScoreLog.deleteMany({ project: projectId }),
   ]);
   await req.project.deleteOne();
   res.json({ ok: true });
+});
+
+// 지분 산정 내역: 누가 언제 왜 +10/−10 되었는지
+router.get('/:projectId/score-logs', projectMemberRequired, async (req, res) => {
+  const logs = await ScoreLog.find({ project: req.project._id })
+    .populate('user', 'nickname avatar')
+    .sort({ createdAt: -1 })
+    .limit(200);
+  res.json({ logs });
 });
 
 // 지분 조회: 멤버별 점수를 백분율로 환산해서 반환

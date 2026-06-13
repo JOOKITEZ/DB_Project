@@ -1,6 +1,7 @@
 const express = require('express');
 const Task = require('../models/Task');
 const Notification = require('../models/Notification');
+const ScoreLog = require('../models/ScoreLog');
 const { authRequired, projectMemberRequired, leaderRequired } = require('../middleware/auth');
 
 const router = express.Router();
@@ -73,6 +74,10 @@ router.put('/:projectId/tasks/:taskId/status', projectMemberRequired, async (req
         member.score += 10;
         task.rewardApplied = true;
         await req.project.save();
+        await ScoreLog.create({
+          project: req.project._id, user: task.assignee, delta: 10,
+          reason: `기한 내 완료: ${task.title}`, task: task._id,
+        });
       }
     }
 
@@ -97,11 +102,29 @@ router.put('/:projectId/tasks/:taskId/status', projectMemberRequired, async (req
       member.score -= 10;
       task.rewardApplied = false;
       await req.project.save();
+      await ScoreLog.create({
+        project: req.project._id, user: task.assignee, delta: -10,
+        reason: `완료 취소: ${task.title}`, task: task._id,
+      });
     }
   }
 
   await task.save();
   res.json({ task });
+});
+
+// 할 일 순서 일괄 변경 (드래그 앤 드롭): orderedIds 순서대로 order를 1,2,3…으로 부여
+router.put('/:projectId/tasks/reorder', projectMemberRequired, async (req, res) => {
+  const { orderedIds } = req.body;
+  if (!Array.isArray(orderedIds)) {
+    return res.status(400).json({ error: '순서 목록(orderedIds)이 필요합니다.' });
+  }
+  await Promise.all(
+    orderedIds.map((id, i) =>
+      Task.updateOne({ _id: id, project: req.project._id }, { order: i + 1 })
+    )
+  );
+  res.json({ ok: true });
 });
 
 // 할 일 삭제 (팀장 전용)
@@ -118,6 +141,10 @@ router.delete('/:projectId/tasks/:taskId', projectMemberRequired, leaderRequired
     if (member) {
       member.score -= 10;
       await req.project.save();
+      await ScoreLog.create({
+        project: req.project._id, user: task.assignee, delta: -10,
+        reason: `완료된 할 일 삭제: ${task.title}`,
+      });
     }
   }
 

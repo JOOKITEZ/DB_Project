@@ -64,6 +64,7 @@ digraph ERD {
       <TR><TD ALIGN="LEFT">type : Enum(기사·논문·영상·기타)</TD></TR>
       <TR><TD ALIGN="LEFT">title / memo : String</TD></TR>
       <TR><TD ALIGN="LEFT">url : String (기타는 선택)</TD></TR>
+      <TR><TD ALIGN="LEFT">fileName / originalName : String (첨부파일)</TD></TR>
     </TABLE>>];
 
   PPTS [label=<
@@ -105,6 +106,17 @@ digraph ERD {
       <TR><TD ALIGN="LEFT">read : Boolean</TD></TR>
     </TABLE>>];
 
+  SCORELOGS [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
+      <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>SCORELOGS (지분 내역)</B></FONT></TD></TR>
+      <TR><TD BGCOLOR="#e4e4e7" ALIGN="LEFT"><U>_id : ObjectId (PK)</U></TD></TR>
+      <TR><TD ALIGN="LEFT">project : ObjectId (FK → PROJECTS)</TD></TR>
+      <TR><TD ALIGN="LEFT">user : ObjectId (FK → USERS)</TD></TR>
+      <TR><TD ALIGN="LEFT">delta : Number (+10 / −10)</TD></TR>
+      <TR><TD ALIGN="LEFT">reason : String (변동 사유)</TD></TR>
+      <TR><TD ALIGN="LEFT">task : ObjectId (FK → TASKS)</TD></TR>
+    </TABLE>>];
+
   VERIFICATIONCODES [label=<
     <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#3f3f46">
       <TR><TD BGCOLOR="#3f3f46" ALIGN="CENTER"><FONT COLOR="white"><B>VERIFICATIONCODES (인증코드)</B></FONT></TD></TR>
@@ -133,4 +145,6 @@ digraph ERD {
   PROJECTS -> NOTIFICATIONS [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="1:N"];
   USERS    -> NOTIFICATIONS [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="수신 1:N"];
   USERS    -> VERIFICATIONCODES [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="이메일 인증 1:N"];
+  PROJECTS -> SCORELOGS     [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="1:N"];
+  USERS    -> SCORELOGS     [dir=both, arrowtail=tee, arrowhead=crow, style=dashed, xlabel="기록 1:N"];
 }
