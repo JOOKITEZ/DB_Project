@@ -536,10 +536,12 @@ async function renderPptSlides(ppt) {
       slide.className = 'ppt-slide';
       slide.innerHTML = `
         <div class="slide-label">${n}장</div>
-        <div class="slide-canvas-wrap"></div>
-        <div class="slide-script">
-          <textarea id="scr-${ppt._id}-${n}" rows="2" placeholder="${n}장의 대본을 입력하세요">${esc(scriptMap[n] || '')}</textarea>
-          <button class="primary-btn" onclick="saveScript('${ppt._id}', ${n}, this)">대본 저장</button>
+        <div class="slide-main">
+          <div class="slide-canvas-wrap"></div>
+          <div class="slide-script">
+            <textarea id="scr-${ppt._id}-${n}" placeholder="${n}장의 대본을 입력하세요">${esc(scriptMap[n] || '')}</textarea>
+            <button class="primary-btn" onclick="saveScript('${ppt._id}', ${n}, this)">대본 저장</button>
+          </div>
         </div>`;
       slide.querySelector('.slide-canvas-wrap').appendChild(canvas);
       container.appendChild(slide);
