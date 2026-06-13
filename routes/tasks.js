@@ -1,5 +1,7 @@
 const express = require('express');
-const { Task, Notification, ScoreLog } = require('../models');
+const Task = require('../models/Task');
+const Notification = require('../models/Notification');
+const ScoreLog = require('../models/ScoreLog');
 const { authRequired, projectMemberRequired, leaderRequired } = require('../middleware/auth');
 
 const router = express.Router();

@@ -1,5 +1,6 @@
 const express = require('express');
-const { Message, Notification } = require('../models');
+const Message = require('../models/Message');
+const Notification = require('../models/Notification');
 const { authRequired, projectMemberRequired } = require('../middleware/auth');
 
 const router = express.Router();
