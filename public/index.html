@@ -154,6 +154,7 @@
         <div class="project-title-row">
           <h2 id="projectTitle"></h2>
           <span id="inviteCodeChip" class="chip"></span>
+          <button id="copyInviteBtn" class="icon-btn" onclick="copyInviteCode()" title="초대코드 복사">📋 복사</button>
           <button id="deleteProjectBtn" class="danger-btn hidden" onclick="deleteProject()">프로젝트 삭제</button>
         </div>
         <p id="projectDesc" class="project-desc"></p>
@@ -223,12 +224,17 @@
 
       <!-- PPT·대본 탭 -->
       <div id="tab-ppts" class="tab-panel hidden">
-        <div class="card">
-          <h3>PPT 업로드 (ppt / pptx / pdf)</h3>
-          <p class="hint">'PPT' 할 일을 배정받은 사람만 업로드, '대본' 할 일을 배정받은 사람만 대본 작성이 가능합니다.</p>
-          <div class="form-row">
-            <input id="pptFile" type="file" accept=".ppt,.pptx,.pdf" />
-            <button class="primary-btn" onclick="uploadPpt()">업로드</button>
+        <div class="card ppt-upload-card">
+          <button type="button" class="upload-toggle" onclick="togglePptUpload()">
+            <span>＋ PPT 업로드 (ppt / pptx / pdf)</span>
+            <span id="pptUploadCaret">▾</span>
+          </button>
+          <div id="pptUploadBody" class="upload-body">
+            <p class="hint">'PPT' 할 일을 배정받은 사람만 업로드, '대본' 할 일을 배정받은 사람만 대본 작성이 가능합니다. <b>PDF로 올리면 슬라이드를 장별로 보며 대본을 달 수 있어요.</b></p>
+            <div class="form-row">
+              <input id="pptFile" type="file" accept=".ppt,.pptx,.pdf" />
+              <button class="primary-btn" onclick="uploadPpt()">업로드</button>
+            </div>
           </div>
         </div>
         <div id="pptList"></div>

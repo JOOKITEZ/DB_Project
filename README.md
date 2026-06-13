@@ -12,9 +12,9 @@
 | 아이디/비밀번호 찾기 | 가입한 이메일로 **4자리 인증코드**를 받아 아이디를 확인하거나 비밀번호를 재설정 |
 | 프로젝트 생성 | 생성자가 자동으로 **팀장**이 되고, 고유 **4자리 초대 코드**가 부여됨 |
 | 프로젝트 삭제 | **팀장만** 삭제 가능. 할 일·자료·PPT·메시지·알림이 함께 정리됨 |
-| 초대 코드 참가 | 4자리 코드를 입력해 팀원으로 참가 |
+| 초대 코드 참가 | 4자리 코드를 입력해 팀원으로 참가 (프로젝트 화면에서 **복사 버튼**으로 코드 복사) |
 | 역할 부여 | 팀장이 **팀장 자신 포함 모든 멤버**에게 역할을 지정 (예: 자료조사, PPT 제작) |
-| 할 일 관리 | 팀장·팀원 누구나 추가 가능. 담당자·**종류(category)**·**순서(order)**·**최대 기한(dueDate)** 을 설정 |
+| 할 일 관리 | 팀장·팀원 누구나 추가 가능. 담당자·**종류(category)**·**순서(order)**·**최대 기한(dueDate)** 을 설정. 할 일 삭제 시 **남은 할 일의 순서 자동 정리** |
 | 작업 권한 | 자료 등록·PPT 업로드·대본 작성은 **해당 종류의 할 일을 배정받은 사람만** 가능 |
 | 작업 바로가기 | 할 일을 클릭하면 그 종류의 작업 화면(자료조사/PPT 탭)으로 자동 이동 |
 | 마감 알림 | 기한 **이틀 전 / 하루 전** 두 번 알림 (스케줄러가 매시 검사) |
@@ -24,7 +24,7 @@
 | 프로필 | 프로필 이미지·닉네임 변경, 학교/학과/학번(선택) 기입 |
 | 알림 자동 읽음 | 알림 패널을 열면 자동으로 읽음 처리 |
 | PPT 보관함 | ppt·pptx·pdf 업로드. **PDF는 슬라이드를 한 장씩 미리보기**하며 그 아래에 장별 대본 작성. 세로 스크롤/가로 넘기기 전환 가능 |
-| 메시지 | 프로젝트별 채팅 (3초 폴링), 보낸 사람 프로필 아이콘 표시 |
+| 메시지 | 프로젝트별 채팅 (3초 폴링), 보낸 사람 프로필 아이콘 표시. 본인 메시지 삭제 시 **"삭제된 메시지입니다"**로 표시 |
 | 멤버 프로필 | 멤버를 클릭하면 프로필(역할·학교·학과 등)을 확인 |
 | 지분 현황 | 팀장·팀원 모두의 지분을 점수 비율(%)과 막대그래프로 표시 |
 
@@ -91,7 +91,7 @@ npm test
 | `tasks` | project, assignee, title, category(기사/논문/영상/PPT/대본/기타), order, dueDate, status, notifiedTwoDays, notifiedOneDay, penaltyApplied |
 | `resources` | project, uploader, type(기사/논문/영상/기타), title, url(기타는 선택), memo |
 | `ppts` | project, uploader, originalName, fileName, scripts[{slideNumber, script}] |
-| `messages` | project, sender, content |
+| `messages` | project, sender, content, deleted(소프트 삭제) |
 | `notifications` | user, project, type(마감임박/기한초과/다음순서), message, read |
 | `verificationcodes` | email(unique), code(4자리), expiresAt(10분 후 TTL 자동 삭제) |
 
@@ -142,6 +142,7 @@ POST   /api/projects/:id/ppts                PPT 업로드
 PUT    /api/projects/:id/ppts/:pid/scripts   장별 대본 저장
 POST   /api/projects/:id/messages            메시지 전송
 GET    /api/projects/:id/messages            메시지 목록 (?after= 폴링)
+DELETE /api/projects/:id/messages/:mid       메시지 삭제 (보낸 사람, 소프트 삭제)
 GET    /api/notifications                    내 알림
 PUT    /api/notifications/read-all           모두 읽음
 ```

@@ -90,6 +90,7 @@ digraph ERD {
       <TR><TD ALIGN="LEFT">project : ObjectId (FK → PROJECTS)</TD></TR>
       <TR><TD ALIGN="LEFT">sender : ObjectId (FK → USERS)</TD></TR>
       <TR><TD ALIGN="LEFT">content : String</TD></TR>
+      <TR><TD ALIGN="LEFT">deleted : Boolean (소프트 삭제)</TD></TR>
       <TR><TD ALIGN="LEFT">createdAt : Date (IX)</TD></TR>
     </TABLE>>];
 

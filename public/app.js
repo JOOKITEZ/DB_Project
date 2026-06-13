@@ -278,6 +278,25 @@ async function openProject(projectId) {
   } catch (e) { alert(e.message); }
 }
 
+// 초대코드 복사
+async function copyInviteCode() {
+  if (!currentProject) return;
+  const code = currentProject.inviteCode;
+  const btn = document.getElementById('copyInviteBtn');
+  try {
+    await navigator.clipboard.writeText(code);
+  } catch {
+    // clipboard API를 못 쓰는 환경(비보안 컨텍스트 등) 폴백
+    const t = document.createElement('textarea');
+    t.value = code; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); } catch {}
+    document.body.removeChild(t);
+  }
+  const label = btn.textContent;
+  btn.textContent = '✓ 복사됨';
+  setTimeout(() => { btn.textContent = label; }, 1500);
+}
+
 // 프로젝트 삭제 (팀장 전용)
 async function deleteProject() {
   if (!currentProject) return;
@@ -446,9 +465,20 @@ async function deleteResource(id) {
 }
 
 // ===== PPT · 대본 =====
+// 업로드 영역 접기/펴기 — PPT가 있으면 접어서 슬라이드·대본이 바로 보이게 한다
+function setPptUploadCollapsed(collapsed) {
+  document.getElementById('pptUploadBody').classList.toggle('collapsed', collapsed);
+  document.getElementById('pptUploadCaret').textContent = collapsed ? '▸' : '▾';
+}
+function togglePptUpload() {
+  setPptUploadCollapsed(!document.getElementById('pptUploadBody').classList.contains('collapsed'));
+}
+
 async function loadPpts() {
   const { ppts } = await api('GET', `/projects/${currentProject._id}/ppts`);
   const list = document.getElementById('pptList');
+  // PPT가 있으면 업로드 영역은 접어 두고, 없으면 펼쳐서 바로 올릴 수 있게 한다
+  setPptUploadCollapsed(ppts.length > 0);
   if (!ppts.length) {
     list.innerHTML = '<p class="hint">업로드된 PPT가 없습니다.</p>';
     return;
@@ -602,26 +632,37 @@ async function deletePpt(id) {
 }
 
 // ===== 메시지 =====
-async function loadMessages(initial = false) {
-  if (!currentProject) return;
-  const q = !initial && lastMessageAt ? `?after=${encodeURIComponent(lastMessageAt)}` : '';
-  const { messages } = await api('GET', `/projects/${currentProject._id}/messages${q}`);
-  const box = document.getElementById('chatMessages');
-  if (initial) { box.innerHTML = ''; lastMessageAt = null; }
-  if (!messages.length) return;
-  lastMessageAt = messages[messages.length - 1].createdAt;
-  box.insertAdjacentHTML('beforeend', messages.map((m) => {
-    const mine = m.sender?._id === me.id;
+// 삭제가 모두에게 반영되도록 전체 목록을 불러오되, 변경이 없으면 다시 그리지 않아 스크롤이 튀지 않게 한다
+let lastMsgSig = null;
+
+function renderMessage(m) {
+  const mine = m.sender?._id === me.id;
+  const head = `<div class="sender">${esc(m.sender?.nickname || '')} · ${fmtDate(m.createdAt)}</div>`;
+  if (m.deleted) {
     return `
+    <div class="msg ${mine ? 'mine' : ''} deleted">
+      <span class="avatar avatar-sm msg-avatar">${avatarHtml(m.sender)}</span>
+      <div class="msg-content">${head}<div class="bubble">삭제된 메시지입니다</div></div>
+    </div>`;
+  }
+  const delBtn = mine ? `<button class="msg-del" onclick="deleteMessage('${m._id}')" title="삭제">삭제</button>` : '';
+  return `
     <div class="msg ${mine ? 'mine' : ''}">
       <span class="avatar avatar-sm msg-avatar">${avatarHtml(m.sender)}</span>
-      <div class="msg-content">
-        <div class="sender">${esc(m.sender?.nickname || '')} · ${fmtDate(m.createdAt)}</div>
-        <div class="bubble">${esc(m.content)}</div>
-      </div>
+      <div class="msg-content">${head}<div class="bubble">${esc(m.content)}</div>${delBtn}</div>
     </div>`;
-  }).join(''));
-  box.scrollTop = box.scrollHeight;
+}
+
+async function loadMessages(initial = false) {
+  if (!currentProject) return;
+  const { messages } = await api('GET', `/projects/${currentProject._id}/messages`);
+  const sig = messages.map((m) => `${m._id}:${m.deleted ? 1 : 0}`).join(',');
+  if (!initial && sig === lastMsgSig) return; // 변화 없으면 그대로 둔다
+  lastMsgSig = sig;
+  const box = document.getElementById('chatMessages');
+  const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  box.innerHTML = messages.map(renderMessage).join('');
+  if (initial || nearBottom) box.scrollTop = box.scrollHeight;
 }
 
 async function sendMessage() {
@@ -631,6 +672,14 @@ async function sendMessage() {
   input.value = '';
   try {
     await api('POST', `/projects/${currentProject._id}/messages`, { content });
+    loadMessages();
+  } catch (e) { alert(e.message); }
+}
+
+async function deleteMessage(id) {
+  if (!confirm('이 메시지를 삭제할까요? 삭제하면 "삭제된 메시지입니다"로 표시됩니다.')) return;
+  try {
+    await api('DELETE', `/projects/${currentProject._id}/messages/${id}`);
     loadMessages();
   } catch (e) { alert(e.message); }
 }

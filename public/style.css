@@ -118,6 +118,12 @@ input, select {
   background: #e4e4e7; color: #3f3f46; border-radius: 999px;
   padding: 6px 16px; font-weight: 700; font-size: 14px; white-space: nowrap;
 }
+.icon-btn {
+  background: #fff; border: 1px solid #d4d4d8; color: #3f3f46;
+  border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.icon-btn:hover { background: #f4f4f5; }
 .tabs {
   display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 18px;
   background: #fff; padding: 6px; border-radius: 12px;
@@ -174,6 +180,14 @@ input, select {
 .resource-item .meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
 
 /* PPT */
+.ppt-upload-card { padding: 16px 20px; }
+.upload-toggle {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: 15px; font-weight: 700; color: #27272a;
+}
+.upload-body { margin-top: 12px; }
+.upload-body.collapsed { display: none; }
 .ppt-item { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
 .ppt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .ppt-head a { color: #3f3f46; font-weight: 700; text-decoration: none; flex: 1; }
@@ -205,6 +219,14 @@ input, select {
 .msg.mine { margin-left: auto; flex-direction: row-reverse; }
 .msg.mine .sender { text-align: right; }
 .msg.mine .bubble { background: #3f3f46; color: #fff; }
+.msg-del {
+  background: none; border: none; color: #a1a1aa; font-size: 11px;
+  cursor: pointer; padding: 2px 4px; margin-top: 2px;
+}
+.msg-del:hover { color: #b91c1c; text-decoration: underline; }
+.msg.mine .msg-content { display: flex; flex-direction: column; align-items: flex-end; }
+.msg.deleted .bubble { background: #f4f4f5; color: #a1a1aa; font-style: italic; }
+.msg.deleted.mine .bubble { background: #e4e4e7; color: #71717a; }
 .chat-input-row { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #e5e7eb; }
 .chat-input-row input { margin-bottom: 0; }
 

@@ -122,6 +122,13 @@ router.delete('/:projectId/tasks/:taskId', projectMemberRequired, leaderRequired
   }
 
   await task.deleteOne();
+
+  // 삭제된 할 일보다 뒤 순서였던 할 일들의 순서를 한 칸씩 당겨 빈 자리를 메운다
+  await Task.updateMany(
+    { project: req.project._id, order: { $gt: task.order } },
+    { $inc: { order: -1 } }
+  );
+
   res.json({ ok: true });
 });
 

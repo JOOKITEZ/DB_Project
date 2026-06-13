@@ -147,8 +147,27 @@ async function main() {
   // 11. 메시지
   r = await call('POST', `/projects/${project._id}/messages`, { content: '안녕하세요!' }, memberToken);
   assert(r.status === 201, '메시지 전송');
+  const messageId = r.data.message._id;
   r = await call('GET', `/projects/${project._id}/messages`, null, leaderToken);
   assert(r.data.messages.length === 1 && r.data.messages[0].content === '안녕하세요!', '메시지 조회');
+
+  // 11-1. 메시지 삭제: 보낸 사람만 가능, 삭제 후에는 내용 없이 표시만 남는다
+  r = await call('DELETE', `/projects/${project._id}/messages/${messageId}`, null, leaderToken);
+  assert(r.status === 403, '남의 메시지 삭제 거부');
+  r = await call('DELETE', `/projects/${project._id}/messages/${messageId}`, null, memberToken);
+  assert(r.status === 200, '본인 메시지 삭제');
+  r = await call('GET', `/projects/${project._id}/messages`, null, leaderToken);
+  assert(r.data.messages[0].deleted === true && r.data.messages[0].content === '', '삭제된 메시지는 내용 없이 표시만 남음');
+
+  // 11-2. 할 일 삭제 시 뒤 순서가 한 칸씩 당겨진다 (order 2, 3 → 1, 2)
+  let future2 = new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString();
+  await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '순서정리A', category: '기타', order: 1, dueDate: future2 }, leaderToken);
+  let rb = await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '순서정리B', category: '기타', order: 2, dueDate: future2 }, leaderToken);
+  await call('POST', `/projects/${project._id}/tasks`, { assignee: memberId, title: '순서정리C', category: '기타', order: 3, dueDate: future2 }, leaderToken);
+  await call('DELETE', `/projects/${project._id}/tasks/${rb.data.task._id}`, null, leaderToken); // order 2 삭제
+  r = await call('GET', `/projects/${project._id}/tasks`, null, leaderToken);
+  const cTask = r.data.tasks.find((t) => t.title === '순서정리C');
+  assert(cTask && cTask.order === 2, '할 일 삭제 시 뒤 순서 자동 조정 (3→2)');
 
   // 12. 비멤버 접근 차단
   r = await call('POST', '/auth/signup', { userId: 'outsider', password: 'out123!', nickname: '외부인', email: 'out@test.com' });
