@@ -143,6 +143,8 @@ function logout() {
   token = null; me = null;
   stopChatPolling();
   if (notifPollTimer) clearInterval(notifPollTimer);
+  document.getElementById('notifPanel').classList.add('hidden');
+  switchAuth('login'); // 로그아웃 시 항상 로그인 화면으로
   show('authView');
 }
 
@@ -379,19 +381,75 @@ async function loadPpts() {
         <span class="meta" style="font-size:12px;color:#6b7280">${esc(p.uploader?.nickname || '')} · ${fmtDate(p.createdAt)}</span>
         ${(p.uploader?._id === me.id || isLeader()) ? `<button class="danger-btn" onclick="deletePpt('${p._id}')">삭제</button>` : ''}
       </div>
-      ${p.scripts.map((s) => `
-        <div class="script-row">
-          <span class="slide-no">${s.slideNumber}장</span>
-          <p>${esc(s.script)}</p>
-        </div>
-      `).join('')}
-      <div class="script-form">
-        <input type="number" min="1" id="slideNo-${p._id}" placeholder="장" />
-        <input id="slideScript-${p._id}" placeholder="이 장의 대본을 입력하세요" />
-        <button class="primary-btn" onclick="saveScript('${p._id}')">대본 저장</button>
-      </div>
+      <div class="ppt-slides" id="pptSlides-${p._id}"></div>
     </div>
   `).join('');
+  // 각 PPT의 슬라이드(미리보기 + 장별 대본)를 렌더링
+  ppts.forEach((p) => renderPptSlides(p));
+}
+
+// 슬라이드를 한 장씩 보여주고 그 아래에 대본 입력칸을 배치한다
+async function renderPptSlides(ppt) {
+  const container = document.getElementById(`pptSlides-${ppt._id}`);
+  if (!container) return;
+  const scriptMap = {};
+  ppt.scripts.forEach((s) => { scriptMap[s.slideNumber] = s.script; });
+
+  // pdf만 브라우저에서 장별로 렌더링 가능
+  if (!ppt.fileName.toLowerCase().endsWith('.pdf') || !window.pdfjsLib) {
+    container.innerHTML =
+      '<p class="hint">ppt·pptx는 브라우저 미리보기를 지원하지 않습니다. <b>PDF로 변환해 업로드</b>하면 슬라이드를 보며 장별 대본을 달 수 있어요.</p>'
+      + renderManualScripts(ppt);
+    return;
+  }
+
+  container.innerHTML = '<p class="hint">슬라이드를 불러오는 중…</p>';
+  try {
+    const pdf = await pdfjsLib.getDocument(`/uploads/${ppt.fileName}`).promise;
+    container.innerHTML = '';
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const page = await pdf.getPage(n);
+      const viewport = page.getViewport({ scale: 1.4 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+      const slide = document.createElement('div');
+      slide.className = 'ppt-slide';
+      slide.innerHTML = `
+        <div class="slide-label">${n}장</div>
+        <div class="slide-canvas-wrap"></div>
+        <div class="slide-script">
+          <textarea id="scr-${ppt._id}-${n}" rows="2" placeholder="${n}장의 대본을 입력하세요">${esc(scriptMap[n] || '')}</textarea>
+          <button class="primary-btn" onclick="saveScript('${ppt._id}', ${n}, this)">대본 저장</button>
+        </div>`;
+      slide.querySelector('.slide-canvas-wrap').appendChild(canvas);
+      container.appendChild(slide);
+    }
+  } catch (e) {
+    container.innerHTML =
+      `<p class="hint">슬라이드를 불러오지 못했습니다. <a href="/uploads/${esc(ppt.fileName)}" target="_blank" rel="noopener">파일 열기</a></p>`
+      + renderManualScripts(ppt);
+  }
+}
+
+// 미리보기를 못 쓰는 경우: 기존 대본을 편집하거나 장을 직접 추가
+function renderManualScripts(ppt) {
+  const rows = ppt.scripts.map((s) => `
+    <div class="ppt-slide manual">
+      <div class="slide-label">${s.slideNumber}장</div>
+      <div class="slide-script">
+        <textarea id="scr-${ppt._id}-${s.slideNumber}" rows="2">${esc(s.script)}</textarea>
+        <button class="primary-btn" onclick="saveScript('${ppt._id}', ${s.slideNumber}, this)">저장</button>
+      </div>
+    </div>`).join('');
+  return rows + `
+    <div class="script-form">
+      <input type="number" min="1" id="newSlideNo-${ppt._id}" placeholder="장" />
+      <input id="newSlideScript-${ppt._id}" placeholder="이 장의 대본을 입력하세요" />
+      <button class="primary-btn" onclick="addManualScript('${ppt._id}')">장 추가</button>
+    </div>`;
 }
 
 async function uploadPpt() {
@@ -406,10 +464,24 @@ async function uploadPpt() {
   } catch (e) { alert(e.message); }
 }
 
-async function saveScript(pptId) {
+// 특정 장의 대본 저장 (페이지 전체를 다시 렌더링하지 않고 버튼만 피드백)
+async function saveScript(pptId, slideNumber, btn) {
   try {
-    const slideNumber = Number(document.getElementById(`slideNo-${pptId}`).value);
-    const script = document.getElementById(`slideScript-${pptId}`).value.trim();
+    const script = document.getElementById(`scr-${pptId}-${slideNumber}`).value.trim();
+    await api('PUT', `/projects/${currentProject._id}/ppts/${pptId}/scripts`, { slideNumber, script });
+    if (btn) {
+      const label = btn.textContent;
+      btn.textContent = '저장됨 ✓'; btn.disabled = true;
+      setTimeout(() => { btn.textContent = label; btn.disabled = false; }, 1500);
+    }
+  } catch (e) { alert(e.message); }
+}
+
+// 미리보기를 못 쓰는 PPT에 장을 직접 추가
+async function addManualScript(pptId) {
+  try {
+    const slideNumber = Number(document.getElementById(`newSlideNo-${pptId}`).value);
+    const script = document.getElementById(`newSlideScript-${pptId}`).value.trim();
     if (!slideNumber) return alert('슬라이드 번호를 입력하세요.');
     await api('PUT', `/projects/${currentProject._id}/ppts/${pptId}/scripts`, { slideNumber, script });
     loadPpts();
@@ -433,12 +505,17 @@ async function loadMessages(initial = false) {
   if (initial) { box.innerHTML = ''; lastMessageAt = null; }
   if (!messages.length) return;
   lastMessageAt = messages[messages.length - 1].createdAt;
-  box.insertAdjacentHTML('beforeend', messages.map((m) => `
-    <div class="msg ${m.sender?._id === me.id ? 'mine' : ''}">
-      <div class="sender">${esc(m.sender?.nickname || '')} · ${fmtDate(m.createdAt)}</div>
-      <div class="bubble">${esc(m.content)}</div>
-    </div>
-  `).join(''));
+  box.insertAdjacentHTML('beforeend', messages.map((m) => {
+    const mine = m.sender?._id === me.id;
+    return `
+    <div class="msg ${mine ? 'mine' : ''}">
+      <span class="avatar avatar-sm msg-avatar">${avatarHtml(m.sender)}</span>
+      <div class="msg-content">
+        <div class="sender">${esc(m.sender?.nickname || '')} · ${fmtDate(m.createdAt)}</div>
+        <div class="bubble">${esc(m.content)}</div>
+      </div>
+    </div>`;
+  }).join(''));
   box.scrollTop = box.scrollHeight;
 }
 
@@ -483,20 +560,49 @@ async function loadMembers() {
   currentProject = project;
   document.getElementById('memberList').innerHTML = project.members.map((m) => {
     const info = [m.user.school, m.user.major, m.user.studentId].filter(Boolean).join(' · ');
+    // 팀장은 모든 멤버(자신 포함)에게 역할을 배정할 수 있다
     return `
     <div class="member-item">
-      <div class="avatar member-avatar">${avatarHtml(m.user)}</div>
-      <div class="info">
-        <div class="name">${esc(m.user.nickname)} ${m.isLeader ? '<span class="leader-chip">팀장</span>' : ''}</div>
-        <div class="meta">@${esc(m.user.userId)} · 역할: ${esc(m.role || '미지정')}${info ? '<br>' + esc(info) : ''}</div>
+      <div class="member-main clickable" onclick="openMemberProfile('${m.user._id}')" title="클릭하면 프로필을 봅니다">
+        <div class="avatar member-avatar">${avatarHtml(m.user)}</div>
+        <div class="info">
+          <div class="name">${esc(m.user.nickname)} ${m.isLeader ? '<span class="leader-chip">팀장</span>' : ''}</div>
+          <div class="meta">@${esc(m.user.userId)} · 역할: ${esc(m.role || '미지정')}${info ? '<br>' + esc(info) : ''}</div>
+        </div>
       </div>
-      ${isLeader() && !m.isLeader ? `
-        <div class="role-form">
+      ${isLeader() ? `
+        <div class="role-form" onclick="event.stopPropagation()">
           <input id="role-${m.user._id}" placeholder="역할 입력" value="${esc(m.role)}" />
           <button class="primary-btn" onclick="setRole('${m.user._id}')">저장</button>
         </div>` : ''}
     </div>`;
   }).join('');
+}
+
+// 멤버를 클릭하면 프로필을 읽기 전용으로 보여준다
+function openMemberProfile(memberId) {
+  const m = currentProject.members.find((x) => x.user._id === memberId);
+  if (!m) return;
+  const u = m.user;
+  document.getElementById('memberModalAvatar').innerHTML = avatarHtml(u);
+  document.getElementById('memberModalName').innerHTML =
+    `${esc(u.nickname)} ${m.isLeader ? '<span class="leader-chip">팀장</span>' : ''}`;
+  document.getElementById('memberModalId').textContent = `@${u.userId}`;
+  const rows = [
+    ['역할', m.role || '미지정'],
+    ['학교', u.school],
+    ['학과', u.major],
+    ['학번', u.studentId],
+    ['이메일', u.email],
+  ].filter(([, v]) => v);
+  document.getElementById('memberModalBody').innerHTML = rows
+    .map(([k, v]) => `<div class="member-modal-row"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`)
+    .join('');
+  document.getElementById('memberModal').classList.remove('hidden');
+}
+
+function closeMemberProfile() {
+  document.getElementById('memberModal').classList.add('hidden');
 }
 
 async function setRole(memberId) {
@@ -548,6 +654,18 @@ function startNotifPolling() {
 }
 
 // ===== 초기화 =====
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+}
+
+// 알림 패널 바깥을 클릭하면 닫기
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('notifPanel');
+  if (panel.classList.contains('hidden')) return;
+  if (!e.target.closest('.bell-wrap')) panel.classList.add('hidden');
+});
+
 (function init() {
   if (token && me) {
     updateTopbarAvatar();

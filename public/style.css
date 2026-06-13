@@ -177,19 +177,28 @@ input, select {
 .ppt-item { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
 .ppt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .ppt-head a { color: #3f3f46; font-weight: 700; text-decoration: none; flex: 1; }
-.script-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; }
-.script-row .slide-no { background: #e4e4e7; color: #3f3f46; border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 13px; white-space: nowrap; }
-.script-row p { flex: 1; font-size: 13px; padding-top: 6px; white-space: pre-wrap; }
+.ppt-slides { display: flex; flex-direction: column; gap: 16px; }
+.ppt-slide { border: 1px solid #e4e4e7; border-radius: 12px; overflow: hidden; background: #fafafa; }
+.ppt-slide .slide-label { background: #3f3f46; color: #fff; font-weight: 700; font-size: 13px; padding: 6px 14px; }
+.slide-canvas-wrap { background: #fff; padding: 10px; text-align: center; }
+.slide-canvas-wrap canvas { max-width: 100%; height: auto; border-radius: 6px; box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+.slide-script { display: flex; gap: 8px; align-items: flex-start; padding: 12px; }
+.slide-script textarea { flex: 1; margin-bottom: 0; }
+.slide-script button { white-space: nowrap; }
+.ppt-slide.manual { background: #fff; }
 .script-form { display: flex; gap: 8px; margin-top: 8px; }
 .script-form input[type=number] { width: 80px; flex: none; }
 
 /* 채팅 */
 .chat-box { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); display: flex; flex-direction: column; height: 480px; }
 .chat-messages { flex: 1; overflow-y: auto; padding: 16px; }
-.msg { margin-bottom: 10px; max-width: 75%; }
-.msg .sender { font-size: 11px; color: #6b7280; margin-bottom: 2px; }
-.msg .bubble { background: #f3f4f6; border-radius: 12px; padding: 8px 12px; font-size: 14px; display: inline-block; }
-.msg.mine { margin-left: auto; text-align: right; }
+.msg { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px; max-width: 80%; }
+.msg-avatar { cursor: default; border-color: #f4f4f5; }
+.msg-content { min-width: 0; }
+.msg .sender { font-size: 11px; color: #6b7280; margin-bottom: 3px; }
+.msg .bubble { background: #f3f4f6; border-radius: 12px; padding: 8px 12px; font-size: 14px; display: inline-block; text-align: left; word-break: break-word; }
+.msg.mine { margin-left: auto; flex-direction: row-reverse; }
+.msg.mine .sender { text-align: right; }
 .msg.mine .bubble { background: #3f3f46; color: #fff; }
 .chat-input-row { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #e5e7eb; }
 .chat-input-row input { margin-bottom: 0; }
@@ -209,10 +218,20 @@ input, select {
   background: #fff; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px;
   display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
-.member-item .info { flex: 1; }
+.member-main { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.member-main.clickable { cursor: pointer; border-radius: 8px; padding: 4px; margin: -4px; transition: background .12s; }
+.member-main.clickable:hover { background: #f4f4f5; }
+.member-item .info { flex: 1; min-width: 0; }
 .member-item .info .name { font-weight: 700; }
 .member-item .info .meta { font-size: 12px; color: #6b7280; }
 .role-form { display: flex; gap: 6px; }
+
+/* 멤버 프로필 모달 */
+.member-modal-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.member-modal-sub { color: #71717a; font-size: 13px; }
+.member-modal-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+.member-modal-row .k { width: 64px; color: #71717a; font-weight: 700; flex: none; }
+.member-modal-row .v { color: #27272a; word-break: break-word; }
 .role-form input { width: 140px; margin-bottom: 0; }
 .leader-chip { background: #fef3c7; color: #b45309; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; }
 
